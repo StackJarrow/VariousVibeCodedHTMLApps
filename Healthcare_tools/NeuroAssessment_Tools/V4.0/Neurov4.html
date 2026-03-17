@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroAssess — Clinical Assessment Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0F1A;--surface:#131825;--surface2:#1A2035;--surface3:#212840;--border:#2A3150;
+  --text:#E8ECF4;--text-dim:#8892B0;--text-muted:#5A6480;
+  --ac1:#38BDF8;--ac2:#EF4444;--ac3:#F97316;--ac4:#22C55E;--ac5:#F472B6;--ac6:#818CF8;--ac7:#2DD4BF;--ac8:#F59E0B;--ac9:#A78BFA;--ac10:#FB923C;
+  --ab1:rgba(56,189,248,.08);--ab2:rgba(239,68,68,.08);--ab3:rgba(249,115,22,.08);--ab4:rgba(34,197,94,.08);--ab5:rgba(244,114,182,.08);--ab6:rgba(129,140,248,.08);--ab7:rgba(45,212,191,.08);--ab8:rgba(245,158,11,.08);--ab9:rgba(167,139,250,.08);--ab10:rgba(251,146,60,.08);
+  --radius:12px;--radius-sm:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:6px;height:6px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.app{max-width:960px;margin:0 auto;padding:20px 16px 100px;}
+.header{text-align:center;padding:32px 0 24px;position:relative;}
+.header::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:60px;height:2px;background:linear-gradient(90deg,transparent,var(--text-muted),transparent);}
+.logo{font-family:var(--mono);font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
+.header h1{font-size:28px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,#E8ECF4,#8892B0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+
+/* Nav */
+.nav-wrap{position:sticky;top:0;z-index:100;background:var(--bg);padding:8px 0 4px;}
+.nav-cats{display:flex;gap:4px;margin-bottom:6px;padding:0 2px;}
+.cat-btn{font-family:var(--mono);font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all .2s;}
+.cat-btn:hover{border-color:var(--text-dim);color:var(--text-dim);}
+.cat-btn.active{background:var(--surface2);color:var(--text);border-color:var(--text-dim);}
+.nav{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:6px;}
+.nav::-webkit-scrollbar{display:none;}
+.nav-btn{flex:0 0 auto;min-width:86px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 8px 8px;cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden;}
+.nav-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--btn-accent);opacity:0;transition:opacity .2s;}
+.nav-btn:hover{border-color:var(--btn-accent);transform:translateY(-1px);}
+.nav-btn.active{background:var(--btn-bg);border-color:var(--btn-accent);box-shadow:0 0 20px var(--btn-bg);}
+.nav-btn.active::before{opacity:1;}
+.nav-btn .icon{font-size:16px;margin-bottom:2px;}
+.nav-btn .label{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);transition:color .2s;white-space:nowrap;}
+.nav-btn.active .label{color:var(--btn-accent);}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;transition:border-color .2s;}
+.card:hover{border-color:var(--surface3);}
+.card-header{padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;}
+.card-header:hover{background:var(--surface2);}
+.card-left{display:flex;align-items:center;gap:12px;flex:1;}
+.card-num{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--sa);background:var(--sb);padding:4px 8px;border-radius:6px;min-width:32px;text-align:center;}
+.card-title{font-weight:600;font-size:14px;line-height:1.3;}
+.card-subtitle{font-size:12px;color:var(--text-dim);margin-top:1px;}
+.card-status{font-family:var(--mono);font-size:12px;padding:3px 10px;border-radius:20px;margin-left:8px;white-space:nowrap;}
+.card-status.pending{color:var(--text-muted);background:var(--surface2);}
+.card-status.done{color:var(--sa);background:var(--sb);}
+.chevron{color:var(--text-muted);transition:transform .25s;font-size:16px;margin-left:6px;}
+.chevron.open{transform:rotate(180deg);}
+.card-body{max-height:0;overflow:hidden;transition:max-height .35s ease;}
+.card-body.open{max-height:3000px;}
+.card-content{padding:0 16px 16px;border-top:1px solid var(--border);}
+
+.test-info{background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;margin:12px 0;font-size:13px;line-height:1.6;color:var(--text-dim);border-left:3px solid var(--sa);}
+.test-info strong{color:var(--text);font-weight:500;}
+.options{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+.opt-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text-dim);font-family:var(--sans);font-size:13px;cursor:pointer;transition:all .15s;text-align:left;}
+.opt-btn:hover{border-color:var(--sa);color:var(--text);background:var(--sb);}
+.opt-btn.selected{background:var(--sa);color:var(--bg);border-color:var(--sa);font-weight:600;}
+
+.score-bar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.score-label{font-size:13px;color:var(--text-dim);font-weight:500;}
+.score-value{font-family:var(--mono);font-size:32px;font-weight:700;color:var(--sa);}
+.score-max{font-size:16px;color:var(--text-muted);font-weight:400;}
+.score-interp{font-size:13px;color:var(--text-dim);padding:6px 12px;background:var(--sb);border-radius:6px;display:inline-block;}
+.severity-bar-track{width:100%;height:6px;background:var(--surface3);border-radius:3px;margin:12px 0 6px;overflow:hidden;}
+.severity-bar-fill{height:100%;border-radius:3px;transition:width .5s ease,background .3s;}
+
+.rass-display{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px;text-align:center;}
+.rass-score{font-family:var(--mono);font-size:48px;font-weight:700;color:var(--sa);}
+.rass-label{font-size:16px;font-weight:600;color:var(--text);margin-top:4px;}
+.rass-desc{font-size:13px;color:var(--text-dim);margin-top:8px;}
+
+/* CAM result display */
+.cam-result{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px;text-align:center;}
+.cam-result-text{font-size:24px;font-weight:700;margin-bottom:6px;}
+.cam-result-sub{font-size:13px;color:var(--text-dim);}
+
+.derma-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.derma-level{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .15s;}
+.derma-level:hover{border-color:var(--ac4);}
+.derma-level.intact{border-color:var(--ac4);background:rgba(34,197,94,.06);}
+.derma-level.impaired{border-color:var(--ac8);background:rgba(245,158,11,.06);}
+.derma-level.absent{border-color:var(--ac2);background:rgba(239,68,68,.06);}
+.derma-label{font-family:var(--mono);font-size:13px;font-weight:500;}
+.derma-status{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.derma-level.intact .derma-status{color:var(--ac4);}
+.derma-level.impaired .derma-status{color:var(--ac8);}
+.derma-level.absent .derma-status{color:var(--ac2);}
+
+.summary-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:20px;}
+.summary-box h3{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text);}
+.summary-text{font-family:var(--mono);font-size:12px;line-height:1.8;color:var(--text-dim);background:var(--surface2);border-radius:var(--radius-sm);padding:14px;white-space:pre-wrap;max-height:300px;overflow-y:auto;}
+.btn-row{display:flex;gap:8px;margin-top:12px;}
+.action-btn{background:var(--sa);color:var(--bg);border:none;border-radius:var(--radius-sm);padding:10px 20px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s;}
+.action-btn:hover{opacity:.85;}.action-btn:active{transform:scale(.97);}
+.action-btn.secondary{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.section-header h2{font-size:20px;font-weight:700;letter-spacing:-.3px;}
+.section-badge{font-family:var(--mono);font-size:11px;color:var(--sa);background:var(--sb);padding:4px 10px;border-radius:20px;}
+.region-group{margin-bottom:16px;}
+.region-title{font-size:13px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-left:4px;}
+.protocol-note{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;font-size:12px;line-height:1.7;color:var(--text-dim);}
+.protocol-note strong{color:var(--text);}.protocol-note .nt{font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--sa);margin-bottom:6px;}
+
+/* Cincinnati step badges */
+.step-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-family:var(--mono);font-size:13px;font-weight:700;margin-right:8px;}
+.step-badge.pass{background:rgba(34,197,94,.15);color:var(--ac4);}
+.step-badge.fail{background:rgba(239,68,68,.15);color:var(--ac2);}
+.step-badge.none{background:var(--surface3);color:var(--text-muted);}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 24px;font-size:13px;font-weight:500;color:var(--text);z-index:1000;opacity:0;transition:all .3s ease;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+@media(max-width:600px){.derma-grid{grid-template-columns:1fr;}.score-bar{flex-direction:column;text-align:center;}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fadeIn .3s ease forwards;}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+// ══════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════
+const CN=[
+  {num:"I",name:"Olfactory",fn:"Smell",test:"Identify scents (coffee, vanilla) one nostril at a time, eyes closed. Avoid ammonia (CN V).",opts:["Normal","Anosmia","Hyposmia","Not tested"]},
+  {num:"II",name:"Optic",fn:"Acuity & fields",test:"Snellen chart. Confrontation fields. Pupillary reflex (afferent). Fundoscopy.",opts:["Normal","Decreased acuity","Field cut","APD","Not tested"]},
+  {num:"III",name:"Oculomotor",fn:"EOM, pupil, lid",test:"Pupil size/reactivity (efferent). H-pattern EOM. Ptosis check. PERRLA.",opts:["Normal","Ptosis","Blown pupil","EOM deficit","Not tested"]},
+  {num:"IV",name:"Trochlear",fn:"Down/in gaze",test:"Look down and inward. Head tilt compensation. Vertical diplopia on downgaze.",opts:["Normal","Deficit","Head tilt","Not tested"]},
+  {num:"V",name:"Trigeminal",fn:"Face sensation, jaw",test:"Light touch/pinprick V1-V2-V3. Corneal reflex (afferent). Jaw clench.",opts:["Normal","↓V1","↓V2","↓V3","Absent corneal","Not tested"]},
+  {num:"VI",name:"Abducens",fn:"Lateral gaze",test:"Look laterally. Deficit = can't abduct eye.",opts:["Normal","Deficit","Not tested"]},
+  {num:"VII",name:"Facial",fn:"Expression, taste",test:"Raise brows, close eyes, smile, puff cheeks. UMN=forehead spared. LMN=entire side.",opts:["Normal","UMN pattern","LMN pattern","Not tested"]},
+  {num:"VIII",name:"Vestibulocochlear",fn:"Hearing & balance",test:"Finger rub each ear. Weber/Rinne. Nystagmus check.",opts:["Normal","Hearing loss R","Hearing loss L","Nystagmus","Not tested"]},
+  {num:"IX",name:"Glossopharyngeal",fn:"Pharynx sensation",test:"Gag reflex (afferent=IX). Swallow assessment.",opts:["Normal","Absent gag","Dysphagia","Not tested"]},
+  {num:"X",name:"Vagus",fn:"Palate, phonation",test:"Say 'ahh' — uvula away from lesion. Voice quality.",opts:["Normal","Uvula deviation","Hoarseness","Absent gag","Not tested"]},
+  {num:"XI",name:"Accessory",fn:"SCM & trapezius",test:"Shrug vs resistance. Turn head vs resistance.",opts:["Normal","Weak SCM","Weak trap","Not tested"]},
+  {num:"XII",name:"Hypoglossal",fn:"Tongue",test:"Protrude tongue — toward lesion. Atrophy/fasciculations.",opts:["Normal","Deviation R","Deviation L","Atrophy","Not tested"]}
+];
+
+const NIHSS=[
+  {id:"1a",name:"1a. LOC",scale:[{val:0,label:"0 — Alert"},{val:1,label:"1 — Arousable minor stim"},{val:2,label:"2 — Repeated stim"},{val:3,label:"3 — Unresponsive"}]},
+  {id:"1b",name:"1b. LOC Questions",scale:[{val:0,label:"0 — Both correct"},{val:1,label:"1 — One correct"},{val:2,label:"2 — Neither"}]},
+  {id:"1c",name:"1c. LOC Commands",scale:[{val:0,label:"0 — Both correct"},{val:1,label:"1 — One correct"},{val:2,label:"2 — Neither"}]},
+  {id:"2",name:"2. Best Gaze",scale:[{val:0,label:"0 — Normal"},{val:1,label:"1 — Partial palsy"},{val:2,label:"2 — Forced deviation"}]},
+  {id:"3",name:"3. Visual Fields",scale:[{val:0,label:"0 — No loss"},{val:1,label:"1 — Partial hemianopia"},{val:2,label:"2 — Complete hemianopia"},{val:3,label:"3 — Bilateral/blind"}]},
+  {id:"4",name:"4. Facial Palsy",scale:[{val:0,label:"0 — Normal"},{val:1,label:"1 — Minor"},{val:2,label:"2 — Partial"},{val:3,label:"3 — Complete"}]},
+  {id:"5a",name:"5a. L Arm (10s)",scale:[{val:0,label:"0 — No drift"},{val:1,label:"1 — Drift"},{val:2,label:"2 — Some effort"},{val:3,label:"3 — No effort"},{val:4,label:"4 — No movement"}]},
+  {id:"5b",name:"5b. R Arm (10s)",scale:[{val:0,label:"0 — No drift"},{val:1,label:"1 — Drift"},{val:2,label:"2 — Some effort"},{val:3,label:"3 — No effort"},{val:4,label:"4 — No movement"}]},
+  {id:"6a",name:"6a. L Leg (5s)",scale:[{val:0,label:"0 — No drift"},{val:1,label:"1 — Drift"},{val:2,label:"2 — Some effort"},{val:3,label:"3 — No effort"},{val:4,label:"4 — No movement"}]},
+  {id:"6b",name:"6b. R Leg (5s)",scale:[{val:0,label:"0 — No drift"},{val:1,label:"1 — Drift"},{val:2,label:"2 — Some effort"},{val:3,label:"3 — No effort"},{val:4,label:"4 — No movement"}]},
+  {id:"7",name:"7. Ataxia",scale:[{val:0,label:"0 — Absent"},{val:1,label:"1 — One limb"},{val:2,label:"2 — Two limbs"}]},
+  {id:"8",name:"8. Sensory",scale:[{val:0,label:"0 — Normal"},{val:1,label:"1 — Mild-mod loss"},{val:2,label:"2 — Severe/total"}]},
+  {id:"9",name:"9. Language",scale:[{val:0,label:"0 — No aphasia"},{val:1,label:"1 — Mild-mod"},{val:2,label:"2 — Severe"},{val:3,label:"3 — Mute/global"}]},
+  {id:"10",name:"10. Dysarthria",scale:[{val:0,label:"0 — Normal"},{val:1,label:"1 — Mild slur"},{val:2,label:"2 — Unintelligible"}]},
+  {id:"11",name:"11. Extinction",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — One modality"},{val:2,label:"2 — Profound"}]}
+];
+
+const CINCY=[
+  {id:"face",name:"Facial Droop",test:"Ask patient to show teeth or smile. Observe for asymmetry.",opts:["Normal — both sides move equally","Abnormal — one side does not move as well"]},
+  {id:"arm",name:"Arm Drift",test:"Eyes closed, arms extended 10 seconds, palms up. Observe.",opts:["Normal — both arms move same, or both don't move","Abnormal — one arm drifts down or does not move"]},
+  {id:"speech",name:"Speech",test:"Have patient say 'You can't teach an old dog new tricks' or similar phrase.",opts:["Normal — correct words, no slurring","Abnormal — slurred or wrong words or unable to speak"]}
+];
+
+const DERM={
+  "Cervical":[{l:"C2",a:"Occiput"},{l:"C3",a:"Neck"},{l:"C4",a:"Shoulder"},{l:"C5",a:"Lateral arm"},{l:"C6",a:"Thumb/index"},{l:"C7",a:"Middle finger"},{l:"C8",a:"Ring/little finger"}],
+  "Thoracic":[{l:"T1",a:"Medial forearm"},{l:"T2",a:"Axilla"},{l:"T4",a:"Nipple line"},{l:"T6",a:"Xiphoid"},{l:"T10",a:"Umbilicus"},{l:"T12",a:"Suprapubic"}],
+  "Lumbar":[{l:"L1",a:"Inguinal"},{l:"L2",a:"Ant. thigh"},{l:"L3",a:"Knee"},{l:"L4",a:"Med. malleolus"},{l:"L5",a:"Dorsum foot"}],
+  "Sacral":[{l:"S1",a:"Lat. foot/sole"},{l:"S2",a:"Post. thigh"},{l:"S3",a:"Med. buttock"},{l:"S4-S5",a:"Perianal"}]
+};
+
+const RASS_ITEMS=[
+  {val:4,label:"+4 Combative",desc:"Violent, danger to staff"},
+  {val:3,label:"+3 Very Agitated",desc:"Pulls tubes, aggressive"},
+  {val:2,label:"+2 Agitated",desc:"Frequent non-purposeful movement"},
+  {val:1,label:"+1 Restless",desc:"Anxious but not aggressive"},
+  {val:0,label:"0 Alert & Calm",desc:""},
+  {val:-1,label:"-1 Drowsy",desc:"Sustained awakening (>10s) to voice"},
+  {val:-2,label:"-2 Light Sedation",desc:"Brief (<10s) awakening to voice"},
+  {val:-3,label:"-3 Moderate Sedation",desc:"Movement to voice, no eye contact"},
+  {val:-4,label:"-4 Deep Sedation",desc:"Movement to physical stim only"},
+  {val:-5,label:"-5 Unarousable",desc:"No response to any stimulation"}
+];
+
+// CAM-ICU features
+const CAM_ICU=[
+  {id:"f1",name:"Feature 1: Acute Onset or Fluctuating Course",
+   desc:"Is there an acute change in mental status from baseline? OR has mental status fluctuated in the past 24 hours (per GCS, RASS, or prior delirium assessment)?",
+   opts:["Absent","Present"]},
+  {id:"f2",name:"Feature 2: Inattention",
+   desc:"Letters Attention Test: Read 'S-A-V-E-A-H-A-A-R-T' — patient squeezes on 'A'. Errors = fail to squeeze on A or squeeze on non-A letter. >2 errors = positive.",
+   opts:["Absent (≤2 errors)","Present (>2 errors)"]},
+  {id:"f3",name:"Feature 3: Altered Level of Consciousness",
+   desc:"Current RASS is anything other than 0 (alert and calm).",
+   opts:["Absent (RASS = 0)","Present (RASS ≠ 0)"]},
+  {id:"f4",name:"Feature 4: Disorganized Thinking",
+   desc:"Yes/No questions: 1) Will a stone float on water? 2) Are there fish in the sea? 3) Does one pound weigh more than two? 4) Can you use a hammer to pound a nail? PLUS command: 'Hold up this many fingers' (show 2), then 'Now do the same with the other hand' (don't demonstrate). >1 error = positive.",
+   opts:["Absent (≤1 error)","Present (>1 error)"]}
+];
+
+// Short CAM (S-CAM) — non-ICU delirium screening
+const SCAM=[
+  {id:"s1",name:"Feature 1: Acute Onset & Fluctuating Course",
+   desc:"Is there evidence of an acute change in mental status from baseline? Does the abnormal behavior fluctuate during the day (come and go, or vary in severity)?",
+   opts:["Absent","Present"]},
+  {id:"s2",name:"Feature 2: Inattention",
+   desc:"Does the patient have difficulty focusing attention? E.g., easily distracted, difficulty keeping track of conversation. Can test with days of week backward or serial 7s.",
+   opts:["Absent","Present"]},
+  {id:"s3",name:"Feature 3: Disorganized Thinking",
+   desc:"Is the patient's thinking disorganized or incoherent? Rambling, irrelevant conversation, unclear or illogical flow of ideas, unpredictable switching between subjects.",
+   opts:["Absent","Present"]},
+  {id:"s4",name:"Feature 4: Altered Level of Consciousness",
+   desc:"Overall, how would you rate the patient's level of consciousness? Alert (normal), Vigilant (hyperalert), Lethargic (drowsy), Stupor (difficult to arouse), Coma. Anything other than 'Alert' = present.",
+   opts:["Absent (Alert)","Present (Any other)"]}
+];
+
+const CIWA=[
+  {id:"nausea",name:"Nausea/Vomiting",desc:"'Feel sick? Vomited?'",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Mild"},{val:4,label:"4 — Intermittent"},{val:7,label:"7 — Constant"}]},
+  {id:"tremor",name:"Tremor",desc:"Arms out, fingers spread.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Felt only"},{val:4,label:"4 — Moderate"},{val:7,label:"7 — Severe"}]},
+  {id:"sweat",name:"Sweats",desc:"Observe.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Palms moist"},{val:4,label:"4 — Beads on forehead"},{val:7,label:"7 — Drenching"}]},
+  {id:"anxiety",name:"Anxiety",desc:"'Feel nervous?'",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Mild"},{val:4,label:"4 — Moderate"},{val:7,label:"7 — Panic"}]},
+  {id:"agitation",name:"Agitation",desc:"Observe activity.",scale:[{val:0,label:"0 — Normal"},{val:1,label:"1 — Mild"},{val:4,label:"4 — Restless"},{val:7,label:"7 — Thrashing"}]},
+  {id:"tactile",name:"Tactile",desc:"'Itching, pins, burning, numbness, bugs?'",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Mild"},{val:3,label:"3 — Moderate"},{val:5,label:"5 — Severe halluc"},{val:7,label:"7 — Continuous"}]},
+  {id:"auditory",name:"Auditory",desc:"'Harsh sounds? Hear things not there?'",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Mild"},{val:3,label:"3 — Moderate"},{val:5,label:"5 — Severe halluc"},{val:7,label:"7 — Continuous"}]},
+  {id:"visual",name:"Visual",desc:"'Light too bright? Seeing things?'",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Mild"},{val:3,label:"3 — Moderate"},{val:5,label:"5 — Severe halluc"},{val:7,label:"7 — Continuous"}]},
+  {id:"headache",name:"Headache",desc:"'Head feel different? Band around head?'",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Mild"},{val:3,label:"3 — Moderate"},{val:5,label:"5 — Severe"},{val:7,label:"7 — Extreme"}]},
+  {id:"orient",name:"Orientation",desc:"Day? Place? Person?",scale:[{val:0,label:"0 — Oriented"},{val:1,label:"1 — Uncertain date"},{val:2,label:"2 — Date off >2d"},{val:3,label:"3 — Disoriented date"},{val:4,label:"4 — Disoriented place/person"}]}
+];
+
+const MINDS=[
+  {id:"pulse",name:"Pulse",desc:"Resting HR.",scale:[{val:0,label:"0 — ≤100"},{val:1,label:"1 — 101–110"},{val:2,label:"2 — 111–120"},{val:3,label:"3 — 121–130"},{val:4,label:"4 — 131–140"},{val:5,label:"5 — >140"}]},
+  {id:"dbp",name:"Diastolic BP",desc:"mmHg.",scale:[{val:0,label:"0 — ≤95"},{val:1,label:"1 — 96–100"},{val:2,label:"2 — 101–105"},{val:3,label:"3 — 106–110"},{val:4,label:"4 — 111–115"},{val:5,label:"5 — >115"}]},
+  {id:"temp",name:"Temperature",desc:"Rule out infection.",scale:[{val:0,label:"0 — ≤99.0°F"},{val:1,label:"1 — 99.1–99.4"},{val:2,label:"2 — 99.5–99.9"},{val:3,label:"3 — 100.0–100.3"},{val:5,label:"5 — ≥100.4°F"}]},
+  {id:"sweat",name:"Diaphoresis",desc:"Observe — don't ask.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Palms"},{val:3,label:"3 — Palms+forehead"},{val:5,label:"5 — Drenching"}]},
+  {id:"tremor",name:"Tremor",desc:"Arms extended, fingers spread.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Felt only"},{val:3,label:"3 — Visible extended"},{val:5,label:"5 — Visible at rest"}]},
+  {id:"agitation",name:"Agitation",desc:"Observe. Correlate RASS.",scale:[{val:0,label:"0 — Calm"},{val:1,label:"1 — Restless"},{val:3,label:"3 — Pulling lines"},{val:5,label:"5 — Combative"}]},
+  {id:"halluc",name:"Hallucinations",desc:"Observe for response to non-existent stimuli.",scale:[{val:0,label:"0 — None"},{val:2,label:"2 — Aware not real"},{val:4,label:"4 — Can't distinguish"},{val:6,label:"6 — Actively responding"}]},
+  {id:"orient",name:"Orientation",desc:"Person, place, time, situation.",scale:[{val:0,label:"0 — x4"},{val:2,label:"2 — x3"},{val:4,label:"4 — x2"},{val:5,label:"5 — ≤x1"}]},
+  {id:"seizure",name:"Seizure",desc:"Witnessed or reported.",scale:[{val:0,label:"0 — None"},{val:5,label:"5 — Present"}]}
+];
+
+const COWS=[
+  {id:"pulse",name:"Resting Pulse",desc:"Sit/lie 1 min first.",scale:[{val:0,label:"0 — ≤80"},{val:1,label:"1 — 81–100"},{val:2,label:"2 — 101–120"},{val:4,label:"4 — >120"}]},
+  {id:"sweat",name:"Sweating",desc:"Past 30 min. Not room temp.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Chills/flushing"},{val:2,label:"2 — Flushed/moist"},{val:3,label:"3 — Beads on face"},{val:4,label:"4 — Streaming"}]},
+  {id:"restless",name:"Restlessness",desc:"Observe.",scale:[{val:0,label:"0 — Sits still"},{val:1,label:"1 — Difficult but able"},{val:3,label:"3 — Shifting/legs"},{val:5,label:"5 — Can't sit >1s"}]},
+  {id:"pupil",name:"Pupil Size",desc:"Dim light.",scale:[{val:0,label:"0 — Pinned/normal"},{val:1,label:"1 — Possibly larger"},{val:2,label:"2 — Moderately dilated"},{val:5,label:"5 — Only iris rim"}]},
+  {id:"bone",name:"Bone/Joint Aches",desc:"Not preexisting.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Mild"},{val:2,label:"2 — Severe"},{val:4,label:"4 — Rubbing joints"}]},
+  {id:"nose",name:"Runny Nose/Tearing",desc:"Not cold/allergies.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Stuffy/moist eyes"},{val:2,label:"2 — Running/tearing"},{val:4,label:"4 — Constantly running"}]},
+  {id:"gi",name:"GI Upset",desc:"Past 30 min.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Cramps"},{val:2,label:"2 — Nausea/loose stool"},{val:3,label:"3 — Vomiting/diarrhea"},{val:5,label:"5 — Multiple episodes"}]},
+  {id:"tremor",name:"Tremor",desc:"Extended hands.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Felt only"},{val:2,label:"2 — Slight"},{val:4,label:"4 — Gross/twitching"}]},
+  {id:"yawn",name:"Yawning",desc:"During assessment.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — 1–2"},{val:2,label:"2 — 3+"},{val:4,label:"4 — Several/min"}]},
+  {id:"anxiety",name:"Anxiety/Irritability",desc:"Observe and ask.",scale:[{val:0,label:"0 — None"},{val:1,label:"1 — Increasing"},{val:2,label:"2 — Obviously"},{val:4,label:"4 — Difficult to assess"}]},
+  {id:"goose",name:"Gooseflesh",desc:"Observe.",scale:[{val:0,label:"0 — Smooth"},{val:3,label:"3 — Palpable"},{val:5,label:"5 — Prominent"}]}
+];
+
+// ══════════════════════════════════════════════════════════
+// CATEGORIES & TABS
+// ══════════════════════════════════════════════════════════
+const CATS=[
+  {id:'neuro',label:'Neuro',tabs:[
+    {id:'cranial',icon:'🧠',label:'Cranial N.',a:'--ac1',ab:'--ab1'},
+    {id:'nihss',icon:'⚡',label:'NIHSS',a:'--ac2',ab:'--ab2'},
+    {id:'cincy',icon:'🚑',label:'Cincinnati',a:'--ac3',ab:'--ab3'},
+    {id:'derma',icon:'🦴',label:'Dermatomes',a:'--ac4',ab:'--ab4'},
+  ]},
+  {id:'sedation',label:'Sedation/Delirium',tabs:[
+    {id:'rass',icon:'😴',label:'RASS',a:'--ac5',ab:'--ab5'},
+    {id:'camicu',icon:'🧩',label:'CAM-ICU',a:'--ac6',ab:'--ab6'},
+    {id:'scam',icon:'🔍',label:'Short CAM',a:'--ac7',ab:'--ab7'},
+  ]},
+  {id:'withdrawal',label:'Withdrawal',tabs:[
+    {id:'ciwa',icon:'📋',label:'CIWA-Ar',a:'--ac8',ab:'--ab8'},
+    {id:'minds',icon:'🔬',label:'mMINDS',a:'--ac9',ab:'--ab9'},
+    {id:'cows',icon:'💊',label:'COWS',a:'--ac10',ab:'--ab10'},
+  ]}
+];
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let $={cat:'neuro',tab:'cranial',cranial:{},cranialO:{},nihss:{},nihssO:{},cincy:{},derma:{},rass:null,camicu:{},scam:{},ciwa:{},ciwaO:{},minds:{},mindsO:{},cows:{},cowsO:{}};
+
+// ══════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+function ts(){return new Date().toLocaleString('en-US',{dateStyle:'short',timeStyle:'short'});}
+function dn(c){return !c?'intact':c==='intact'?'impaired':c==='impaired'?'absent':undefined;}
+
+function nihssI(s){return s===0?{t:"No stroke symptoms",c:"#22C55E"}:s<=4?{t:"Minor stroke",c:"#22C55E"}:s<=15?{t:"Moderate stroke",c:"#F59E0B"}:s<=20?{t:"Mod-severe",c:"#F97316"}:{t:"Severe stroke",c:"#EF4444"};}
+function ciwaI(s){return s<=8?{t:"Mild — may not need meds",c:"#22C55E"}:s<=15?{t:"Moderate — consider tx",c:"#F59E0B"}:s<=20?{t:"Severe — tx indicated",c:"#F97316"}:{t:"Very severe — ICU",c:"#EF4444"};}
+function mindsI(s){return s<=7?{t:"Mild — q2h, PRN benzos",c:"#22C55E"}:s<=15?{t:"Moderate — q1h, symptom-triggered",c:"#F59E0B"}:s<=25?{t:"Severe — q20min, ICU",c:"#F97316"}:{t:"Very severe — ICU required",c:"#EF4444"};}
+function rassI(v){return v>=2?{t:"Agitated — assess cause",c:"#EF4444"}:v===1?{t:"Restless",c:"#F59E0B"}:v===0?{t:"Alert & calm — target",c:"#22C55E"}:v>=-2?{t:"Light sedation",c:"#38BDF8"}:v===-3?{t:"Moderate sedation",c:"#A78BFA"}:{t:"Deep sedation/unarousable",c:"#F472B6"};}
+function cowsI(s){return s<=4?{t:"No/minimal withdrawal",c:"#22C55E"}:s<=12?{t:"Mild withdrawal",c:"#F59E0B"}:s<=24?{t:"Moderate withdrawal",c:"#F97316"}:s<=36?{t:"Moderately severe",c:"#EF4444"}:{t:"Severe withdrawal",c:"#EF4444"};}
+
+function getAcc(){const cat=CATS.find(c=>c.id===$.cat);const tab=cat?.tabs.find(t=>t.id===$.tab);return tab?{a:`var(${tab.a})`,bg:`var(${tab.ab})`}:{a:'var(--ac1)',bg:'var(--ab1)'};}
+
+// ══════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════
+function render(){
+  const ac=getAcc();
+  document.getElementById('app').innerHTML=
+    `<div class="header"><div class="logo">NeuroAssess</div><h1>Clinical Assessment Tool</h1></div>`+
+    renderNav()+
+    `<div style="--sa:${ac.a};--sb:${ac.bg}" class="fade-in">${renderTab()}</div>`;
+  attachEvents();
+}
+
+function renderNav(){
+  let h=`<div class="nav-wrap"><div class="nav-cats">`;
+  CATS.forEach(c=>{h+=`<div class="cat-btn ${$.cat===c.id?'active':''}" data-cat="${c.id}">${c.label}</div>`;});
+  h+=`</div><div class="nav">`;
+  const cat=CATS.find(c=>c.id===$.cat);
+  cat.tabs.forEach(t=>{h+=`<div class="nav-btn ${$.tab===t.id?'active':''}" data-tab="${t.id}" style="--btn-accent:var(${t.a});--btn-bg:var(${t.ab})"><div class="icon">${t.icon}</div><div class="label">${t.label}</div></div>`;});
+  h+=`</div></div>`;return h;
+}
+
+function renderTab(){
+  const fn={cranial:rCranial,nihss:rNIHSS,cincy:rCincy,derma:rDerma,rass:rRASS,camicu:rCAMICU,scam:rSCAM,ciwa:rCIWA,minds:rMINDS,cows:rCOWS};
+  return (fn[$.tab]||fn.cranial)();
+}
+
+// ── Generic scored ──
+function rScored(cfg){
+  const{title,badge,items,sk,ok,max,interp,da,note}=cfg;
+  const score=Object.values($[sk]).reduce((a,b)=>a+b,0);const ans=Object.keys($[sk]).length;
+  const ip=interp(score);const pct=Math.min(100,(score/max)*100);
+  let h=`<div class="section-header"><h2>${title}</h2><span class="section-badge">${ans}/${items.length}</span></div>`;
+  if(note)h+=note;
+  h+=`<div class="score-bar"><div><div class="score-label">${badge}</div><div class="score-value">${score}<span class="score-max"> / ${max}</span></div><div class="severity-bar-track"><div class="severity-bar-fill" style="width:${pct}%;background:${ip.c}"></div></div></div><div class="score-interp" style="color:${ip.c}">${ip.t}</div></div>`;
+  h+=items.map(i=>{const o=$[ok]?.[i.id],v=$[sk][i.id];
+    return `<div class="card"><div class="card-header" data-toggle="${da}-${i.id}"><div class="card-left"><div><div class="card-title">${i.name}</div></div></div>${v!==undefined?`<span class="card-status done">${v}</span>`:`<span class="card-status pending">—</span>`}<span class="chevron ${o?'open':''}">▾</span></div><div class="card-body ${o?'open':''}"><div class="card-content">${i.desc?`<div class="test-info">${i.desc}</div>`:''}<div class="options">${i.scale.map(s=>`<button class="opt-btn ${v===s.val?'selected':''}" data-${da}="${i.id}" data-val="${s.val}">${s.label}</button>`).join('')}</div></div></div></div>`;
+  }).join('');
+  return{html:h,score,ans,interp:ip};
+}
+
+function mkSum(lines){
+  return `<div class="summary-box"><h3>Documentation</h3><div class="summary-text">${lines.join('\n')}</div><div class="btn-row"><button class="action-btn" onclick="copyText(this)">Copy</button><button class="action-btn secondary" onclick="clearSection('${$.tab}')">Reset</button></div></div>`;
+}
+
+// ── Cranial ──
+function rCranial(){
+  const ans=Object.keys($.cranial).length;
+  let h=`<div class="section-header"><h2>Cranial Nerve Exam</h2><span class="section-badge">${ans}/12</span></div>`;
+  h+=CN.map(cn=>{const o=$.cranialO[cn.num],v=$.cranial[cn.num];
+    return `<div class="card"><div class="card-header" data-toggle="cranialO-${cn.num}"><div class="card-left"><span class="card-num">CN ${cn.num}</span><div><div class="card-title">${cn.name}</div><div class="card-subtitle">${cn.fn}</div></div></div>${v?`<span class="card-status done">${v}</span>`:`<span class="card-status pending">—</span>`}<span class="chevron ${o?'open':''}">▾</span></div><div class="card-body ${o?'open':''}"><div class="card-content"><div class="test-info"><strong>Test:</strong> ${cn.test}</div><div class="options">${cn.opts.map(op=>`<button class="opt-btn ${v===op?'selected':''}" data-cranial="${cn.num}" data-val="${op}">${op}</button>`).join('')}</div></div></div></div>`;
+  }).join('');
+  if(ans>0){let l=[`CRANIAL NERVES — ${ts()}\n`];CN.forEach(cn=>{const v=$.cranial[cn.num];if(v)l.push(`CN ${cn.num.padEnd(4)} ${cn.name.padEnd(18)} ${v}`);});
+    const ab=CN.filter(cn=>$.cranial[cn.num]&&$.cranial[cn.num]!=='Normal'&&$.cranial[cn.num]!=='Not tested');
+    if(ab.length>0){l.push(`\nABNORMAL:`);ab.forEach(cn=>l.push(`  CN ${cn.num} (${cn.name}): ${$.cranial[cn.num]}`));}else if(ans===12)l.push(`\nAll intact.`);h+=mkSum(l);}
+  return h;
+}
+
+// ── NIHSS ──
+function rNIHSS(){
+  const r=rScored({title:"NIH Stroke Scale",badge:"NIHSS",items:NIHSS,sk:"nihss",ok:"nihssO",max:42,interp:nihssI,da:"nihss"});let h=r.html;
+  if(r.ans>0){let l=[`NIHSS — ${ts()}\n`];NIHSS.forEach(i=>{const v=$.nihss[i.id];if(v!==undefined)l.push(`${i.name.padEnd(25)} ${v}`);});l.push(`\nTOTAL: ${r.score}/42 — ${r.interp.t}`);if(r.score>=6)l.push(`⚠ Consider tPA if within window.`);h+=mkSum(l);}
+  return h;
+}
+
+// ── Cincinnati ──
+function rCincy(){
+  const ans=Object.keys($.cincy).length;
+  const abnormals=Object.values($.cincy).filter(v=>v==='Abnormal').length;
+  let h=`<div class="section-header"><h2>Cincinnati Prehospital Stroke Scale</h2><span class="section-badge">${ans}/3</span></div>`;
+  h+=`<div class="protocol-note"><div class="nt">Cincinnati Stroke Scale</div><strong>3-item rapid stroke screening.</strong> Any single abnormal finding = 72% probability of stroke. All 3 abnormal = >85% probability.<br><br><strong>If ANY finding is abnormal → activate stroke protocol, note time last known well.</strong></div>`;
+  if(ans>0){
+    const color=abnormals>0?"#EF4444":"#22C55E";
+    const text=abnormals===0?"No stroke signs detected":abnormals===1?"1 abnormal finding — 72% stroke probability":abnormals===2?"2 abnormal findings — high stroke probability":"All 3 abnormal — >85% stroke probability";
+    h+=`<div class="cam-result"><div class="cam-result-text" style="color:${color}">${abnormals>0?'⚠ POSITIVE':'✓ NEGATIVE'}</div><div class="cam-result-sub" style="color:${color}">${text}</div></div>`;
+  }
+  CINCY.forEach((item,i)=>{
+    const v=$.cincy[item.id];const cls=v==='Abnormal'?'fail':v?'pass':'none';
+    h+=`<div class="card"><div class="card-header" style="cursor:default"><div class="card-left"><span class="step-badge ${cls}">${i+1}</span><div><div class="card-title">${item.name}</div></div></div>${v?`<span class="card-status done">${v==='Abnormal'?'ABNORMAL':'Normal'}</span>`:`<span class="card-status pending">—</span>`}</div><div class="card-content" style="border-top:1px solid var(--border)"><div class="test-info">${item.test}</div><div class="options">${item.opts.map(o=>{const isAbn=o.startsWith('Abnormal');const sel=v===(isAbn?'Abnormal':'Normal');return `<button class="opt-btn ${sel?'selected':''}" data-cincy="${item.id}" data-val="${isAbn?'Abnormal':'Normal'}">${o}</button>`;}).join('')}</div></div></div>`;
+  });
+  if(ans>0){let l=[`CINCINNATI STROKE SCALE — ${ts()}\n`];CINCY.forEach(i=>{const v=$.cincy[i.id];if(v)l.push(`${i.name.padEnd(20)} ${v.toUpperCase()}`);});l.push(`\nRESULT: ${abnormals>0?'POSITIVE — '+abnormals+'/3 abnormal':'NEGATIVE'}`);if(abnormals>0)l.push(`⚠ Activate stroke protocol. Time last known well: ____`);h+=mkSum(l);}
+  return h;
+}
+
+// ── Dermatomes ──
+function rDerma(){
+  const total=Object.values(DERM).flat().length;const assessed=Object.keys($.derma).length;
+  let h=`<div class="section-header"><h2>Dermatomes</h2><span class="section-badge">${assessed}/${total}</span></div><div class="test-info" style="margin-bottom:16px"><strong>Tap to cycle:</strong> <strong style="color:var(--ac4)">Intact</strong> → <strong style="color:var(--ac8)">Impaired</strong> → <strong style="color:var(--ac2)">Absent</strong> → Clear</div>`;
+  Object.entries(DERM).forEach(([r,ls])=>{h+=`<div class="region-group"><div class="region-title">${r}</div><div class="derma-grid">${ls.map(l=>{const s=$.derma[l.l]||'';return `<div class="derma-level ${s}" data-derma="${l.l}"><div><div class="derma-label">${l.l}</div><div style="font-size:11px;color:var(--text-muted);margin-top:1px">${l.a}</div></div><div class="derma-status">${s||'—'}</div></div>`;}).join('')}</div></div>`;});
+  if(assessed>0){let l=[`DERMATOMES — ${ts()}\n`];const im=[],ab=[];Object.entries(DERM).forEach(([r,ls])=>{let rl=[];ls.forEach(lv=>{const s=$.derma[lv.l];if(s){rl.push(`  ${lv.l.padEnd(7)} ${s.toUpperCase()}`);if(s==='impaired')im.push(lv.l);if(s==='absent')ab.push(lv.l);}});if(rl.length){l.push(`${r}:`);l.push(...rl);}});if(im.length)l.push(`\nIMPAIRED: ${im.join(', ')}`);if(ab.length)l.push(`ABSENT: ${ab.join(', ')}`);if(!im.length&&!ab.length)l.push(`\nAll intact.`);h+=mkSum(l);}
+  return h;
+}
+
+// ── RASS ──
+function rRASS(){
+  const v=$.rass;const ip=v!==null?rassI(v):null;
+  let h=`<div class="section-header"><h2>Richmond Agitation-Sedation Scale</h2><span class="section-badge">${v!==null?'Scored':'—'}</span></div>`;
+  h+=`<div class="protocol-note"><div class="nt">RASS Assessment Steps</div><strong>1. Observe:</strong> Alert/restless/agitated? → Score +1 to +4<br><strong>2. Voice:</strong> Call name, open eyes. Eye contact >10s → -1 | <10s → -2 | Movement only → -3<br><strong>3. Physical:</strong> Shoulder shake/sternal rub. Movement → -4 | None → -5<br><br><strong>Target:</strong> 0 for most. -1 to -2 acceptable for vented patients.</div>`;
+  if(v!==null){const item=RASS_ITEMS.find(r=>r.val===v);h+=`<div class="rass-display"><div class="rass-score">${v>0?'+'+v:v}</div><div class="rass-label">${item.label}</div>${item.desc?`<div class="rass-desc">${item.desc}</div>`:''}<div class="score-interp" style="color:${ip.c};margin-top:12px">${ip.t}</div></div>`;}
+  h+=`<div style="display:flex;flex-direction:column;gap:6px;">`;
+  RASS_ITEMS.forEach(r=>{h+=`<button class="opt-btn ${v===r.val?'selected':''}" data-rass="${r.val}" style="padding:12px 16px"><strong>${r.val>0?'+'+r.val:r.val}</strong> — ${r.label.split(' ').slice(1).join(' ')}${r.desc?`<br><span style="font-size:12px;opacity:.7">${r.desc}</span>`:''}</button>`;});
+  h+=`</div>`;
+  if(v!==null){const item=RASS_ITEMS.find(r=>r.val===v);h+=mkSum([`RASS — ${ts()}\n`,`Score: ${v>0?'+'+v:v}`,`${item.label}`,item.desc,`\n${ip.t}`]);}
+  return h;
+}
+
+// ── CAM-ICU ──
+function rCAMICU(){
+  const ans=Object.keys($.camicu).length;
+  // CAM-ICU positive = Feature 1 + Feature 2 + (Feature 3 OR Feature 4)
+  const f1=$.camicu.f1==='Present',f2=$.camicu.f2==='Present',f3=$.camicu.f3==='Present',f4=$.camicu.f4==='Present';
+  const canScore=ans===4;
+  const positive=f1&&f2&&(f3||f4);
+  let h=`<div class="section-header"><h2>CAM-ICU</h2><span class="section-badge">${ans}/4</span></div>`;
+  h+=`<div class="protocol-note"><div class="nt">Confusion Assessment Method for the ICU</div><strong>Prerequisite:</strong> RASS ≥ -3 (patient must respond to voice at minimum). If RASS -4 or -5 → unable to assess, recheck later.<br><br><strong>Positive = Feature 1 + Feature 2 + (Feature 3 OR Feature 4)</strong><br>Feature 1: Acute onset/fluctuation<br>Feature 2: Inattention (letters test)<br>Feature 3: Altered LOC (RASS ≠ 0)<br>Feature 4: Disorganized thinking (questions + command)</div>`;
+  if(canScore){
+    const color=positive?"#EF4444":"#22C55E";
+    h+=`<div class="cam-result"><div class="cam-result-text" style="color:${color}">${positive?'⚠ CAM-ICU POSITIVE — Delirium Present':'✓ CAM-ICU NEGATIVE — No Delirium'}</div><div class="cam-result-sub">F1(${f1?'+':'-'}) + F2(${f2?'+':'-'}) + [F3(${f3?'+':'-'}) OR F4(${f4?'+':'-'})]</div></div>`;
+  }
+  CAM_ICU.forEach(item=>{const v=$.camicu[item.id];
+    h+=`<div class="card"><div class="card-header" data-toggle="camicuO-${item.id}"><div class="card-left"><div><div class="card-title">${item.name}</div></div></div>${v?`<span class="card-status done">${v}</span>`:`<span class="card-status pending">—</span>`}<span class="chevron ${$.camicuO?.[item.id]?'open':''}">▾</span></div><div class="card-body ${$.camicuO?.[item.id]?'open':''}"><div class="card-content"><div class="test-info">${item.desc}</div><div class="options">${item.opts.map(o=>`<button class="opt-btn ${v===o?'selected':''}" data-camicu="${item.id}" data-val="${o}">${o}</button>`).join('')}</div></div></div></div>`;
+  });
+  if(canScore){h+=mkSum([`CAM-ICU — ${ts()}\n`,`Feature 1 (Acute/Fluctuating): ${$.camicu.f1}`,`Feature 2 (Inattention): ${$.camicu.f2}`,`Feature 3 (Altered LOC): ${$.camicu.f3}`,`Feature 4 (Disorganized Thinking): ${$.camicu.f4}`,`\nRESULT: ${positive?'POSITIVE — Delirium present':'NEGATIVE — No delirium'}`]);}
+  return h;
+}
+
+// ── Short CAM (S-CAM) ──
+function rSCAM(){
+  const ans=Object.keys($.scam).length;
+  const f1=$.scam.s1==='Present',f2=$.scam.s2==='Present',f3=$.scam.s3==='Present',f4=$.scam.s4==='Present';
+  const canScore=ans===4;
+  // Short CAM positive = Feature 1 + Feature 2 + (Feature 3 OR Feature 4)
+  const positive=f1&&f2&&(f3||f4);
+  let h=`<div class="section-header"><h2>Short CAM (Confusion Assessment Method)</h2><span class="section-badge">${ans}/4</span></div>`;
+  h+=`<div class="protocol-note"><div class="nt">Short CAM — Non-ICU Delirium Screening</div><strong>For use in general ward / floor patients who can communicate.</strong> Use CAM-ICU for ICU patients or those who cannot participate.<br><br><strong>Positive = Feature 1 + Feature 2 + (Feature 3 OR Feature 4)</strong><br>Feature 1: Acute onset AND fluctuating course<br>Feature 2: Inattention<br>Feature 3: Disorganized thinking<br>Feature 4: Altered level of consciousness<br><br><strong>Sensitivity 94–100%, Specificity 90–95%</strong> when administered by trained assessor.</div>`;
+  if(canScore){
+    const color=positive?"#EF4444":"#22C55E";
+    h+=`<div class="cam-result"><div class="cam-result-text" style="color:${color}">${positive?'⚠ CAM POSITIVE — Delirium Likely':'✓ CAM NEGATIVE — Delirium Unlikely'}</div><div class="cam-result-sub">F1(${f1?'+':'-'}) + F2(${f2?'+':'-'}) + [F3(${f3?'+':'-'}) OR F4(${f4?'+':'-'})]</div></div>`;
+  }
+  SCAM.forEach(item=>{const v=$.scam[item.id];
+    h+=`<div class="card"><div class="card-header" data-toggle="scamO-${item.id}"><div class="card-left"><div><div class="card-title">${item.name}</div></div></div>${v?`<span class="card-status done">${v}</span>`:`<span class="card-status pending">—</span>`}<span class="chevron ${$.scamO?.[item.id]?'open':''}">▾</span></div><div class="card-body ${$.scamO?.[item.id]?'open':''}"><div class="card-content"><div class="test-info">${item.desc}</div><div class="options">${item.opts.map(o=>`<button class="opt-btn ${v===o?'selected':''}" data-scam="${item.id}" data-val="${o}">${o}</button>`).join('')}</div></div></div></div>`;
+  });
+  if(canScore){h+=mkSum([`SHORT CAM — ${ts()}\n`,`Feature 1 (Acute/Fluctuating): ${$.scam.s1}`,`Feature 2 (Inattention): ${$.scam.s2}`,`Feature 3 (Disorganized Thinking): ${$.scam.s3}`,`Feature 4 (Altered LOC): ${$.scam.s4}`,`\nRESULT: ${positive?'POSITIVE — Delirium likely':'NEGATIVE — Delirium unlikely'}`]);}
+  return h;
+}
+
+// ── CIWA ──
+function rCIWA(){
+  const r=rScored({title:"CIWA-Ar",badge:"CIWA-Ar",items:CIWA,sk:"ciwa",ok:"ciwaO",max:67,interp:ciwaI,da:"ciwa"});let h=r.html;
+  if(r.ans>0){let l=[`CIWA-Ar — ${ts()}\n`];CIWA.forEach(i=>{const v=$.ciwa[i.id];if(v!==undefined)l.push(`${i.name.padEnd(25)} ${v}`);});l.push(`\nTOTAL: ${r.score}/67 — ${r.interp.t}`);h+=mkSum(l);}
+  return h;
+}
+
+// ── mMINDS ──
+function rMINDS(){
+  const note=`<div class="protocol-note"><div class="nt">mMINDS</div><strong>Modified Minnesota Detoxification Scale</strong> — Objective 9-item tool for alcohol withdrawal. ICU patients / when CIWA unreliable.<br><strong>Advantage:</strong> No patient participation. Objective signs only.<br><strong>Reassess:</strong> Mild ≤7 → q2h | Moderate 8–15 → q1h | Severe 16+ → q20min<br><strong>Note:</strong> Rule out other causes. Score 0 if unable to assess. Benzos before neuroleptics. Thiamine before dextrose.</div>`;
+  const r=rScored({title:"mMINDS",badge:"mMINDS",items:MINDS,sk:"minds",ok:"mindsO",max:46,interp:mindsI,da:"minds",note});let h=r.html;
+  if(r.ans>0){let l=[`mMINDS — ${ts()}\n`];MINDS.forEach(i=>{const v=$.minds[i.id];if(v!==undefined)l.push(`${i.name.padEnd(20)} ${v}`);});l.push(`\nTOTAL: ${r.score}/46 — ${r.interp.t}`);const f=r.score<=7?"q2h":r.score<=15?"q1h":"q20min";l.push(`Reassess: ${f}`);if($.minds.seizure===5)l.push(`⚠ SEIZURE — consider ICU.`);if(r.score>15)l.push(`⚠ Aggressive benzo tx.`);h+=mkSum(l);}
+  return h;
+}
+
+// ── COWS ──
+function rCOWS(){
+  const note=`<div class="protocol-note"><div class="nt">COWS</div><strong>Clinical Opiate Withdrawal Scale</strong> — 11-item scale for opioid withdrawal severity. Guides buprenorphine induction.<br><strong>Scoring:</strong> ≤4 None | 5–12 Mild | 13–24 Moderate | 25–36 Mod-severe | >36 Severe<br><strong>Buprenorphine:</strong> Generally start when COWS ≥8–12. Score before each dose.</div>`;
+  const r=rScored({title:"COWS",badge:"COWS",items:COWS,sk:"cows",ok:"cowsO",max:47,interp:cowsI,da:"cows",note});let h=r.html;
+  if(r.ans>0){let l=[`COWS — ${ts()}\n`];COWS.forEach(i=>{const v=$.cows[i.id];if(v!==undefined)l.push(`${i.name.padEnd(25)} ${v}`);});l.push(`\nTOTAL: ${r.score}/47 — ${r.interp.t}`);if(r.score>=8&&r.score<=12)l.push(`→ Consider buprenorphine induction.`);if(r.score>12)l.push(`→ Buprenorphine induction appropriate.`);h+=mkSum(l);}
+  return h;
+}
+
+// ══════════════════════════════════════════════════════════
+// EVENTS
+// ══════════════════════════════════════════════════════════
+function attachEvents(){
+  document.querySelectorAll('.cat-btn').forEach(b=>b.addEventListener('click',()=>{$.cat=b.dataset.cat;const cat=CATS.find(c=>c.id===$.cat);$.tab=cat.tabs[0].id;render();}));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{$.tab=b.dataset.tab;render();}));
+  document.querySelectorAll('[data-toggle]').forEach(el=>el.addEventListener('click',()=>{const p=el.dataset.toggle.split(/-(.+)/);if(!$[p[0]])$[p[0]]={};$[p[0]][p[1]]=!$[p[0]][p[1]];render();}));
+  document.querySelectorAll('[data-cranial]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();$.cranial[b.dataset.cranial]=b.dataset.val;render();}));
+  ['nihss','ciwa','minds','cows'].forEach(da=>{document.querySelectorAll(`[data-${da}]`).forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();$[da][b.dataset[da]]=parseInt(b.dataset.val);render();}));});
+  document.querySelectorAll('[data-rass]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();$.rass=parseInt(b.dataset.rass);render();}));
+  document.querySelectorAll('[data-cincy]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();$.cincy[b.dataset.cincy]=b.dataset.val;render();}));
+  document.querySelectorAll('[data-camicu]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();$.camicu[b.dataset.camicu]=b.dataset.val;render();}));
+  document.querySelectorAll('[data-scam]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();$.scam[b.dataset.scam]=b.dataset.val;render();}));
+  document.querySelectorAll('[data-derma]').forEach(el=>el.addEventListener('click',()=>{const l=el.dataset.derma,n=dn($.derma[l]);if(n)$.derma[l]=n;else delete $.derma[l];render();}));
+}
+
+// ══════════════════════════════════════════════════════════
+// GLOBAL
+// ══════════════════════════════════════════════════════════
+window.copyText=function(b){navigator.clipboard.writeText(b.closest('.summary-box').querySelector('.summary-text').textContent).then(()=>toast('Copied'));};
+window.clearSection=function(s){
+  const map={cranial:['cranial','cranialO'],nihss:['nihss','nihssO'],cincy:['cincy'],derma:['derma'],rass:null,camicu:['camicu'],scam:['scam'],ciwa:['ciwa','ciwaO'],minds:['minds','mindsO'],cows:['cows','cowsO']};
+  if(s==='rass'){$.rass=null;}else{(map[s]||[]).forEach(k=>$[k]={});}
+  render();toast('Reset');
+};
+
+render();
+</script>
+</body>
+</html>

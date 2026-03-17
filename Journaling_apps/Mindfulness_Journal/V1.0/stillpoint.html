@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0F1A14">
+<title>Stillpoint — Mindful Journaling</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg-primary: #0F1A14;
+    --bg-secondary: #162420;
+    --bg-tertiary: #1A1E2E;
+    --bg-deep: #141218;
+    --accent: #95C4B0;
+    --accent-soft: rgba(149,196,176,0.2);
+    --accent-glow: rgba(149,196,176,0.08);
+    --text-primary: #E8EDE6;
+    --text-body: #D8DDD6;
+    --text-muted: rgba(216,221,214,0.6);
+    --text-faint: rgba(216,221,214,0.35);
+    --text-ghost: rgba(216,221,214,0.25);
+    --border-subtle: rgba(255,255,255,0.06);
+    --border-soft: rgba(255,255,255,0.08);
+    --border-accent: rgba(149,196,176,0.3);
+    --surface: rgba(255,255,255,0.03);
+    --surface-hover: rgba(255,255,255,0.06);
+    --font-body: 'DM Sans', 'Avenir Next', system-ui, sans-serif;
+    --font-display: 'Playfair Display', 'Georgia', serif;
+    --radius: 14px;
+    --radius-lg: 16px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg-primary);
+    color: var(--text-body);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+  }
+
+  #app {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    min-height: 100%;
+    background: linear-gradient(165deg, var(--bg-primary) 0%, var(--bg-secondary) 35%, var(--bg-tertiary) 70%, var(--bg-deep) 100%);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .bg-glow {
+    position: fixed;
+    top: -120px;
+    right: -80px;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-glow-bottom {
+    position: fixed;
+    bottom: -160px;
+    left: -100px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(106,140,175,0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── Views ─── */
+  .view {
+    display: none;
+    position: relative;
+    z-index: 1;
+    padding: calc(52px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
+    animation: fadeUp 0.35s ease;
+  }
+  .view.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+  @keyframes breatheGlow {
+    0%, 100% { box-shadow: 0 0 40px rgba(149,196,176,0.08); }
+    50% { box-shadow: 0 0 80px rgba(149,196,176,0.18); }
+  }
+
+  /* ─── Typography ─── */
+  .greeting {
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .title {
+    font-family: var(--font-display);
+    font-size: 44px;
+    font-weight: 300;
+    color: var(--text-primary);
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: rgba(216,221,214,0.35);
+    letter-spacing: 3px;
+    font-style: italic;
+    margin-top: 6px;
+  }
+
+  .section-label {
+    font-size: 12px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  /* ─── Stats ─── */
+  .stats-row {
+    display: flex;
+    gap: 10px;
+    margin: 28px 0;
+  }
+  .stat-card {
+    flex: 1;
+    background: rgba(255,255,255,0.035);
+    border-radius: var(--radius);
+    padding: 14px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid var(--border-subtle);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--accent);
+    font-family: var(--font-display);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-top: 4px;
+  }
+
+  /* ─── Buttons ─── */
+  .btn-primary {
+    width: 100%;
+    padding: 18px 24px;
+    background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(149,196,176,0.08) 100%);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-lg);
+    color: #C5E0D4;
+    font-size: 17px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    letter-spacing: 0.5px;
+    font-family: var(--font-body);
+    transition: all 0.2s ease;
+  }
+  .btn-primary:active { transform: scale(0.98); opacity: 0.85; }
+  .btn-primary .icon { font-size: 13px; opacity: 0.6; }
+
+  .btn-secondary {
+    width: 100%;
+    padding: 15px 24px;
+    background: transparent;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 15px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    font-family: var(--font-body);
+    letter-spacing: 0.3px;
+    transition: all 0.2s;
+  }
+  .btn-secondary:active { background: var(--surface); }
+
+  .btn-back {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 0;
+    font-family: var(--font-body);
+  }
+
+  .btn-save {
+    background: var(--accent-soft);
+    border: 1px solid var(--border-accent);
+    color: #C5E0D4;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 22px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: opacity 0.2s;
+  }
+  .btn-save:disabled { opacity: 0.35; pointer-events: none; }
+
+  .btn-delete {
+    background: none;
+    border: 1px solid rgba(200,100,100,0.2);
+    color: rgba(200,100,100,0.5);
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 40px;
+    font-family: var(--font-body);
+  }
+
+  .btn-shuffle {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 10px;
+    padding: 0;
+    font-family: var(--font-body);
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── Cards ─── */
+  .entry-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 10px;
+  }
+  .entry-card:active { background: var(--surface-hover); }
+  .entry-card .emoji { font-size: 22px; flex-shrink: 0; line-height: 1.4; }
+  .entry-card .text {
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(216,221,214,0.65);
+  }
+  .entry-card .date {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 4px;
+  }
+
+  /* ─── Mood Picker ─── */
+  .mood-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .mood-row::-webkit-scrollbar { display: none; }
+
+  .mood-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-soft);
+    background: transparent;
+    cursor: pointer;
+    min-width: 64px;
+    transition: all 0.2s;
+    font-family: var(--font-body);
+  }
+  .mood-btn .em { font-size: 24px; }
+  .mood-btn .label {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+  }
+  .mood-btn.selected {
+    border-color: var(--accent);
+    background: rgba(149,196,176,0.1);
+  }
+
+  /* ─── Prompt ─── */
+  .prompt-box {
+    background: rgba(149,196,176,0.05);
+    border: 1px solid rgba(149,196,176,0.1);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 20px;
+  }
+  .prompt-text {
+    font-size: 15px;
+    font-style: italic;
+    color: rgba(216,221,214,0.6);
+    line-height: 1.65;
+    font-family: var(--font-display);
+  }
+
+  /* ─── Textarea ─── */
+  .journal-textarea {
+    width: 100%;
+    min-height: 220px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+    padding: 18px;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text-body);
+    resize: vertical;
+    font-family: var(--font-body);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .journal-textarea::placeholder { color: var(--text-ghost); }
+  .journal-textarea:focus { border-color: rgba(149,196,176,0.2); }
+
+  .word-count {
+    font-size: 11px;
+    color: var(--text-ghost);
+    text-align: right;
+    margin-top: 6px;
+  }
+
+  /* ─── Write Top Bar ─── */
+  .write-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+
+  /* ─── Save Flash ─── */
+  .save-flash {
+    display: none;
+    position: fixed;
+    top: calc(56px + var(--safe-top));
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(149,196,176,0.2);
+    border: 1px solid rgba(149,196,176,0.35);
+    color: #C5E0D4;
+    padding: 10px 30px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 500;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: fadeUp 0.3s ease;
+  }
+  .save-flash.show { display: block; }
+
+  /* ─── Breathing ─── */
+  .breath-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 100px);
+    text-align: center;
+  }
+  .breath-cycles {
+    font-size: 11px;
+    color: var(--text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    margin-bottom: 48px;
+  }
+  .breath-ring-outer {
+    position: relative;
+    width: 210px;
+    height: 210px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 48px;
+  }
+  .breath-ring {
+    position: absolute;
+    width: 210px;
+    height: 210px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(149,196,176,0.22) 0%, rgba(149,196,176,0.04) 70%);
+    border: 1px solid rgba(149,196,176,0.18);
+    transition: transform 0.12s ease-out, opacity 0.12s ease-out;
+    animation: breatheGlow 4s ease-in-out infinite;
+  }
+  .breath-label {
+    position: relative;
+    z-index: 2;
+    font-size: 18px;
+    font-weight: 300;
+    color: #C5E0D4;
+    letter-spacing: 1px;
+    font-family: var(--font-display);
+  }
+  .breath-start {
+    background: rgba(149,196,176,0.12);
+    border: 1px solid rgba(149,196,176,0.22);
+    color: #C5E0D4;
+    font-size: 15px;
+    padding: 14px 36px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--font-body);
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+  .breath-start:active { transform: scale(0.97); }
+  .breath-hint {
+    font-size: 12px;
+    color: var(--text-ghost);
+    margin-top: 24px;
+    letter-spacing: 0.5px;
+  }
+  .breath-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: none;
+    border: none;
+    color: rgba(216,221,214,0.35);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  /* ─── Entry Detail ─── */
+  .entry-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 20px 0 24px;
+  }
+  .entry-header .big-emoji { font-size: 38px; }
+  .entry-mood {
+    font-size: 20px;
+    font-family: var(--font-display);
+    color: var(--text-primary);
+  }
+  .entry-date-detail {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+  .entry-prompt-detail {
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(149,196,176,0.45);
+    margin-bottom: 20px;
+    line-height: 1.55;
+    font-family: var(--font-display);
+  }
+  .entry-body {
+    font-size: 16px;
+    line-height: 1.8;
+    color: rgba(216,221,214,0.8);
+    white-space: pre-wrap;
+  }
+
+  /* ─── History ─── */
+  .history-title {
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    margin: 16px 0 24px;
+  }
+  .empty-text {
+    color: var(--text-faint);
+    font-size: 14px;
+    font-style: italic;
+    text-align: center;
+    margin-top: 60px;
+    line-height: 1.6;
+  }
+
+  /* Recent section on home */
+  .recent-label {
+    font-size: 11px;
+    color: var(--text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    margin-bottom: 10px;
+    margin-top: 28px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="bg-glow"></div>
+  <div class="bg-glow-bottom"></div>
+
+  <!-- ═══ HOME ═══ -->
+  <div id="view-home" class="view active">
+    <p class="greeting" id="greeting"></p>
+    <h1 class="title">Stillpoint</h1>
+    <p class="subtitle">mindful journaling</p>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-num" id="stat-streak">0</span>
+        <span class="stat-label">day streak</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="stat-total">0</span>
+        <span class="stat-label">entries</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="stat-today">0</span>
+        <span class="stat-label">today</span>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="startWriting()">
+      <span class="icon">✦</span> Begin Reflection
+    </button>
+    <button class="btn-secondary" onclick="showView('breathe')">○ &ensp;Breathing Exercise</button>
+    <button class="btn-secondary" id="btn-history" onclick="showView('history')" style="display:none"></button>
+
+    <div id="home-recent" style="display:none">
+      <p class="recent-label">Latest</p>
+      <div id="home-recent-card" class="entry-card"></div>
+    </div>
+  </div>
+
+  <!-- ═══ WRITE ═══ -->
+  <div id="view-write" class="view">
+    <div class="write-top">
+      <button class="btn-back" onclick="showView('home')">← Back</button>
+      <button class="btn-save" id="btn-save" onclick="saveEntry()" disabled>Save</button>
+    </div>
+
+    <p class="section-label">How are you feeling?</p>
+    <div class="mood-row" id="mood-row"></div>
+
+    <div class="prompt-box">
+      <p class="prompt-text" id="prompt-text"></p>
+      <button class="btn-shuffle" onclick="shufflePrompt()">↻ New prompt</button>
+    </div>
+
+    <textarea class="journal-textarea" id="journal-text" placeholder="Write freely…" oninput="onTextInput()"></textarea>
+    <p class="word-count" id="word-count">0 words</p>
+  </div>
+
+  <!-- ═══ BREATHE ═══ -->
+  <div id="view-breathe" class="view">
+    <div class="breath-wrap">
+      <button class="breath-close" onclick="stopBreathing(); showView('home')">✕</button>
+      <p class="breath-cycles" id="breath-cycles">0 cycles complete</p>
+      <div class="breath-ring-outer">
+        <div class="breath-ring" id="breath-ring"></div>
+        <span class="breath-label" id="breath-label">Tap to begin</span>
+      </div>
+      <button class="breath-start" id="breath-toggle" onclick="toggleBreathing()">Start Breathing</button>
+      <p class="breath-hint">4 – 4 – 6 – 2 &ensp;box breathing</p>
+    </div>
+  </div>
+
+  <!-- ═══ HISTORY ═══ -->
+  <div id="view-history" class="view">
+    <button class="btn-back" onclick="showView('home')">← Home</button>
+    <h2 class="history-title">Your Reflections</h2>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- ═══ ENTRY DETAIL ═══ -->
+  <div id="view-entry" class="view">
+    <button class="btn-back" onclick="showView('history')">← Back</button>
+    <div id="entry-detail"></div>
+  </div>
+
+  <!-- Save Flash -->
+  <div class="save-flash" id="save-flash">✓ Saved</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════
+const MOODS = [
+  { emoji:"☀️", label:"Radiant", color:"#E8A87C" },
+  { emoji:"🌤", label:"Calm",    color:"#95C4B0" },
+  { emoji:"🌥", label:"Neutral", color:"#A8B5C8" },
+  { emoji:"🌧", label:"Low",     color:"#7B8FA1" },
+  { emoji:"🌩", label:"Stormy",  color:"#6B7A8D" },
+];
+
+const PROMPTS = [
+  "What are you grateful for right now?",
+  "Describe one thing you noticed today that you usually overlook.",
+  "What emotion is most present? Where do you feel it in your body?",
+  "Write about a moment of peace you experienced recently.",
+  "What would you tell your younger self today?",
+  "Name three things you can hear right now.",
+  "What is one thing you're ready to release?",
+  "Describe your current state of mind as weather.",
+  "What small act of kindness did you witness or perform?",
+  "If this moment were a color, what would it be and why?",
+  "What boundary do you need to honor today?",
+  "Write about something that made you smile this week.",
+  "What does your body need right now?",
+  "Describe a challenge you're facing with compassion.",
+  "What intention do you want to carry into tomorrow?",
+];
+
+const BREATH_PHASES = [
+  { label:"Breathe In", duration:4000 },
+  { label:"Hold",       duration:4000 },
+  { label:"Breathe Out",duration:6000 },
+  { label:"Rest",       duration:2000 },
+];
+
+let entries = [];
+let selectedMood = null;
+let currentPrompt = "";
+let breathActive = false;
+let breathInterval = null;
+let breathPhase = 0;
+let breathElapsed = 0;
+let breathCycles = 0;
+
+// ═══════════════════════════════════════
+//  STORAGE
+// ═══════════════════════════════════════
+function loadEntries() {
+  try { entries = JSON.parse(localStorage.getItem("mj_entries") || "[]"); }
+  catch { entries = []; }
+}
+function saveEntries() {
+  localStorage.setItem("mj_entries", JSON.stringify(entries));
+}
+
+// ═══════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    weekday:"short", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"
+  });
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 5) return "Still night";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  if (h < 21) return "Good evening";
+  return "Good night";
+}
+
+function getStreak() {
+  if (!entries.length) return 0;
+  const daySet = new Set(entries.map(e => new Date(e.date).toDateString()));
+  const days = [...daySet].sort((a,b) => new Date(b) - new Date(a));
+  let streak = 0;
+  const today = new Date(); today.setHours(0,0,0,0);
+  for (let i = 0; i < days.length; i++) {
+    const check = new Date(today);
+    check.setDate(check.getDate() - i);
+    if (days.includes(check.toDateString())) streak++;
+    else break;
+  }
+  return streak;
+}
+
+function getTodayCount() {
+  const t = new Date().toDateString();
+  return entries.filter(e => new Date(e.date).toDateString() === t).length;
+}
+
+function wordCount(s) {
+  const t = s.trim();
+  return t ? t.split(/\s+/).length : 0;
+}
+
+function moodForLabel(label) {
+  return MOODS.find(m => m.label === label) || null;
+}
+
+// ═══════════════════════════════════════
+//  VIEW MANAGEMENT
+// ═══════════════════════════════════════
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+
+  if (name === 'home') renderHome();
+  if (name === 'history') renderHistory();
+  if (name === 'breathe') resetBreathing();
+
+  window.scrollTo(0, 0);
+}
+
+// ═══════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════
+function renderHome() {
+  document.getElementById('greeting').textContent = getGreeting();
+  document.getElementById('stat-streak').textContent = getStreak();
+  document.getElementById('stat-total').textContent = entries.length;
+  document.getElementById('stat-today').textContent = getTodayCount();
+
+  const btnH = document.getElementById('btn-history');
+  if (entries.length > 0) {
+    btnH.style.display = 'block';
+    btnH.textContent = `◇  Past Entries (${entries.length})`;
+  } else {
+    btnH.style.display = 'none';
+  }
+
+  const recent = document.getElementById('home-recent');
+  if (entries.length > 0) {
+    recent.style.display = 'block';
+    const e = entries[0];
+    const mood = moodForLabel(e.mood);
+    document.getElementById('home-recent-card').innerHTML = `
+      <span class="emoji">${mood ? mood.emoji : '📝'}</span>
+      <div style="flex:1;min-width:0">
+        <p class="text">${escHtml(e.text.slice(0,80))}${e.text.length > 80 ? '…' : ''}</p>
+        <p class="date">${formatDate(e.date)}</p>
+      </div>`;
+    document.getElementById('home-recent-card').onclick = () => viewEntry(e.id);
+  } else {
+    recent.style.display = 'none';
+  }
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ═══════════════════════════════════════
+//  WRITE
+// ═══════════════════════════════════════
+function startWriting() {
+  selectedMood = null;
+  document.getElementById('journal-text').value = '';
+  document.getElementById('word-count').textContent = '0 words';
+  document.getElementById('btn-save').disabled = true;
+  shufflePrompt();
+  renderMoodRow();
+  showView('write');
+  setTimeout(() => document.getElementById('journal-text').focus(), 400);
+}
+
+function renderMoodRow() {
+  const row = document.getElementById('mood-row');
+  row.innerHTML = MOODS.map(m => `
+    <button class="mood-btn ${selectedMood && selectedMood.label === m.label ? 'selected' : ''}"
+            style="${selectedMood && selectedMood.label === m.label ? `border-color:${m.color};background:${m.color}18` : ''}"
+            onclick="selectMood('${m.label}')">
+      <span class="em">${m.emoji}</span>
+      <span class="label">${m.label}</span>
+    </button>`).join('');
+}
+
+function selectMood(label) {
+  selectedMood = selectedMood && selectedMood.label === label ? null : moodForLabel(label);
+  renderMoodRow();
+  updateSaveBtn();
+}
+
+function shufflePrompt() {
+  currentPrompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  document.getElementById('prompt-text').textContent = currentPrompt;
+}
+
+function onTextInput() {
+  const txt = document.getElementById('journal-text').value;
+  const wc = wordCount(txt);
+  document.getElementById('word-count').textContent = `${wc} word${wc !== 1 ? 's' : ''}`;
+  updateSaveBtn();
+}
+
+function updateSaveBtn() {
+  const txt = document.getElementById('journal-text').value.trim();
+  document.getElementById('btn-save').disabled = !txt && !selectedMood;
+}
+
+function saveEntry() {
+  const txt = document.getElementById('journal-text').value.trim();
+  if (!txt && !selectedMood) return;
+
+  entries.unshift({
+    id: Date.now().toString(),
+    date: new Date().toISOString(),
+    mood: selectedMood ? selectedMood.label : null,
+    prompt: currentPrompt || null,
+    text: txt,
+  });
+  saveEntries();
+
+  const flash = document.getElementById('save-flash');
+  flash.classList.add('show');
+  setTimeout(() => {
+    flash.classList.remove('show');
+    showView('home');
+  }, 800);
+}
+
+// ═══════════════════════════════════════
+//  BREATHING
+// ═══════════════════════════════════════
+function resetBreathing() {
+  stopBreathing();
+  breathPhase = 0; breathCycles = 0; breathElapsed = 0;
+  document.getElementById('breath-cycles').textContent = '0 cycles complete';
+  document.getElementById('breath-label').textContent = 'Tap to begin';
+  document.getElementById('breath-toggle').textContent = 'Start Breathing';
+  document.getElementById('breath-ring').style.transform = 'scale(0.6)';
+  document.getElementById('breath-ring').style.opacity = '0.6';
+}
+
+function toggleBreathing() {
+  if (breathActive) { stopBreathing(); return; }
+  breathActive = true;
+  document.getElementById('breath-toggle').textContent = 'Pause';
+  breathTick();
+  breathInterval = setInterval(breathTick, 50);
+}
+
+function stopBreathing() {
+  breathActive = false;
+  clearInterval(breathInterval);
+  document.getElementById('breath-toggle').textContent = 'Start Breathing';
+}
+
+function breathTick() {
+  const phase = BREATH_PHASES[breathPhase];
+  breathElapsed += 50;
+  const progress = breathElapsed / phase.duration;
+  document.getElementById('breath-label').textContent = phase.label;
+
+  let scale;
+  if (breathPhase === 0) scale = 0.6 + progress * 0.4;
+  else if (breathPhase === 2) scale = 1.0 - progress * 0.4;
+  else if (breathPhase === 1) scale = 1.0;
+  else scale = 0.6;
+
+  const ring = document.getElementById('breath-ring');
+  ring.style.transform = `scale(${scale})`;
+  ring.style.opacity = (0.3 + scale * 0.5).toFixed(2);
+
+  if (breathElapsed >= phase.duration) {
+    breathElapsed = 0;
+    breathPhase = (breathPhase + 1) % BREATH_PHASES.length;
+    if (breathPhase === 0) {
+      breathCycles++;
+      document.getElementById('breath-cycles').textContent =
+        `${breathCycles} cycle${breathCycles !== 1 ? 's' : ''} complete`;
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (!entries.length) {
+    list.innerHTML = '<p class="empty-text">No entries yet.<br>Start your first reflection.</p>';
+    return;
+  }
+  list.innerHTML = entries.map(e => {
+    const mood = moodForLabel(e.mood);
+    return `<div class="entry-card" onclick="viewEntry('${e.id}')">
+      <span class="emoji">${mood ? mood.emoji : '📝'}</span>
+      <div style="flex:1;min-width:0">
+        <p class="text">${escHtml(e.text.slice(0,90))}${e.text.length > 90 ? '…' : ''}</p>
+        <p class="date">${formatDate(e.date)}</p>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  ENTRY DETAIL
+// ═══════════════════════════════════════
+function viewEntry(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  const mood = moodForLabel(e.mood);
+  document.getElementById('entry-detail').innerHTML = `
+    <div class="entry-header">
+      <span class="big-emoji">${mood ? mood.emoji : '📝'}</span>
+      <div>
+        <p class="entry-mood">${e.mood || 'No mood'}</p>
+        <p class="entry-date-detail">${formatDate(e.date)}</p>
+      </div>
+    </div>
+    ${e.prompt ? `<p class="entry-prompt-detail">"${escHtml(e.prompt)}"</p>` : ''}
+    <p class="entry-body">${escHtml(e.text)}</p>
+    <button class="btn-delete" onclick="deleteEntry('${e.id}')">Delete Entry</button>`;
+  showView('entry');
+}
+
+function deleteEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  entries = entries.filter(e => e.id !== id);
+  saveEntries();
+  showView('history');
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+loadEntries();
+renderHome();
+</script>
+</body>
+</html>

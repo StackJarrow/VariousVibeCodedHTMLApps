@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PENGUIN SLAYER</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    font-family: 'Courier New', monospace;
+  }
+  #gameCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+  #hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 16px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .hud-item {
+    color: #ffcc00;
+    font-size: 16px;
+    font-weight: bold;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+    letter-spacing: 2px;
+  }
+  #controls {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 180px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 10px 16px 20px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .ctrl-group {
+    display: flex;
+    gap: 6px;
+    pointer-events: auto;
+  }
+  .ctrl-btn {
+    width: 64px; height: 64px;
+    border-radius: 14px;
+    border: 2px solid rgba(255,204,0,0.6);
+    background: rgba(0,0,0,0.55);
+    color: #ffcc00;
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: background 0.1s;
+  }
+  .ctrl-btn.active {
+    background: rgba(255,204,0,0.35);
+    border-color: #ffcc00;
+  }
+  .dpad {
+    display: grid;
+    grid-template-columns: 64px 64px 64px;
+    grid-template-rows: 64px 64px;
+    gap: 6px;
+    pointer-events: auto;
+  }
+  .dpad .ctrl-btn:nth-child(1) { grid-column: 2; grid-row: 1; }
+  .dpad .ctrl-btn:nth-child(2) { grid-column: 1; grid-row: 2; }
+  .dpad .ctrl-btn:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .dpad .ctrl-btn:nth-child(4) { grid-column: 3; grid-row: 2; }
+  .fire-btn {
+    width: 90px !important;
+    height: 90px !important;
+    border-radius: 50% !important;
+    border: 3px solid rgba(255,60,60,0.8) !important;
+    background: rgba(180,20,20,0.5) !important;
+    color: #ff4444 !important;
+    font-size: 14px !important;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+  .fire-btn.active {
+    background: rgba(255,60,60,0.6) !important;
+    border-color: #ff6666 !important;
+    box-shadow: 0 0 20px rgba(255,60,60,0.5);
+  }
+  #message {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffcc00;
+    font-size: 28px;
+    font-weight: bold;
+    text-shadow: 3px 3px 0 #000;
+    z-index: 20;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    text-align: center;
+    letter-spacing: 3px;
+  }
+  #message.show { opacity: 1; }
+  #crosshair {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px; height: 24px;
+    z-index: 5;
+    pointer-events: none;
+  }
+  #crosshair::before, #crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(255,204,0,0.7);
+  }
+  #crosshair::before {
+    width: 2px; height: 24px;
+    left: 11px; top: 0;
+  }
+  #crosshair::after {
+    width: 24px; height: 2px;
+    top: 11px; left: 0;
+  }
+  #startScreen {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 30px;
+  }
+  #startScreen h1 {
+    color: #ffcc00;
+    font-size: 36px;
+    text-shadow: 3px 3px 0 #aa0000, 6px 6px 0 #550000;
+    letter-spacing: 4px;
+    text-align: center;
+  }
+  #startScreen h2 {
+    color: #ff4444;
+    font-size: 16px;
+    letter-spacing: 3px;
+  }
+  #startBtn {
+    padding: 16px 48px;
+    font-size: 22px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    background: #aa0000;
+    color: #ffcc00;
+    border: 3px solid #ffcc00;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 3px;
+  }
+  .penguin-art {
+    font-size: 60px;
+    line-height: 1;
+  }
+  #weaponSprite {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    pointer-events: none;
+    width: 200px;
+    height: 200px;
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <div class="penguin-art">🐧</div>
+  <h1>PENGUIN<br>SLAYER</h1>
+  <h2>THEY CAME FROM ANTARCTICA</h2>
+  <button id="startBtn" ontouchstart="startGame()" onclick="startGame()">START</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud">
+  <div class="hud-item" id="healthHud">HP: 100</div>
+  <div class="hud-item" id="ammoHud">AMMO: 50</div>
+  <div class="hud-item" id="scoreHud">SCORE: 0</div>
+  <div class="hud-item" id="killsHud">KILLS: 0</div>
+</div>
+
+<div id="crosshair"></div>
+
+<canvas id="weaponSprite"></canvas>
+
+<div id="controls">
+  <div class="dpad">
+    <div class="ctrl-btn" data-action="forward">▲</div>
+    <div class="ctrl-btn" data-action="left">◄</div>
+    <div class="ctrl-btn" data-action="backward">▼</div>
+    <div class="ctrl-btn" data-action="right">►</div>
+  </div>
+  <div class="ctrl-group" style="flex-direction: column; align-items: center;">
+    <div class="ctrl-btn fire-btn" data-action="shoot">FIRE</div>
+    <div style="display:flex; gap:6px;">
+      <div class="ctrl-btn" data-action="turnLeft" style="width:56px;height:56px;font-size:18px;">↺</div>
+      <div class="ctrl-btn" data-action="turnRight" style="width:56px;height:56px;font-size:18px;">↻</div>
+    </div>
+  </div>
+</div>
+
+<div id="message"></div>
+
+<script>
+// ============ GAME CONFIG ============
+const TILE = 64;
+const MAP_W = 16;
+const MAP_H = 16;
+const FOV = Math.PI / 3;
+const MOVE_SPEED = 2.5;
+const ROT_SPEED = 0.045;
+const MAX_DEPTH = 800;
+const SHOOT_COOLDOWN = 250;
+const PENGUIN_SPEED = 1.0;
+const PENGUIN_HP = 3;
+const PENGUIN_DAMAGE = 8;
+const PENGUIN_ATTACK_RANGE = 50;
+const PENGUIN_ATTACK_COOLDOWN = 1000;
+
+// ============ MAP ============
+// 1=wall, 2=wall variant, 3=wall variant2, 0=empty, 9=penguin spawn
+const MAP = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,2,0,0,0,0,2,0,0,9,0,1],
+  [1,0,0,2,0,2,0,0,0,0,2,0,0,0,0,1],
+  [1,0,0,2,0,0,0,0,0,0,0,0,2,2,0,1],
+  [1,0,0,0,0,0,0,3,3,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,9,0,1],
+  [1,0,2,2,0,3,0,0,0,0,3,0,2,2,0,1],
+  [1,0,0,0,0,3,0,0,0,0,3,0,0,0,0,1],
+  [1,0,9,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,3,3,0,0,0,0,0,0,1],
+  [1,0,0,2,0,0,0,0,0,0,0,0,2,0,0,1],
+  [1,0,0,2,0,2,0,0,0,0,2,0,2,0,0,1],
+  [1,0,9,0,0,2,0,0,0,0,2,0,0,9,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+
+// ============ STATE ============
+let canvas, ctx, wCtx;
+let screenW, screenH;
+let player = { x: 96, y: 96, angle: 0, health: 100, ammo: 50, score: 0, kills: 0 };
+let penguins = [];
+let projectiles = [];
+let particles = [];
+let lastShot = 0;
+let weaponBob = 0;
+let weaponKick = 0;
+let muzzleFlash = 0;
+let gameRunning = false;
+let gameOver = false;
+let waveNum = 1;
+let penguinsToSpawn = 0;
+let msgTimeout = null;
+
+// Input state
+const input = { forward:false, backward:false, left:false, right:false, turnLeft:false, turnRight:false, shoot:false };
+
+// ============ INIT ============
+function startGame() {
+  document.getElementById('startScreen').style.display = 'none';
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+  const wc = document.getElementById('weaponSprite');
+  wCtx = wc.getContext('2d');
+  wc.width = 200;
+  wc.height = 200;
+  resize();
+  window.addEventListener('resize', resize);
+  setupControls();
+  spawnWave();
+  gameRunning = true;
+  gameOver = false;
+  showMessage(`WAVE ${waveNum} - EXTERMINATE!`, 2000);
+  requestAnimationFrame(gameLoop);
+}
+
+function resize() {
+  screenW = window.innerWidth;
+  screenH = window.innerHeight;
+  // Render at half res for performance on mobile
+  canvas.width = Math.floor(screenW / 2);
+  canvas.height = Math.floor(screenH / 2);
+}
+
+// ============ TOUCH CONTROLS ============
+function setupControls() {
+  const btns = document.querySelectorAll('.ctrl-btn');
+  btns.forEach(btn => {
+    const action = btn.dataset.action;
+    btn.addEventListener('touchstart', e => { e.preventDefault(); input[action] = true; btn.classList.add('active'); }, {passive:false});
+    btn.addEventListener('touchend', e => { e.preventDefault(); input[action] = false; btn.classList.remove('active'); }, {passive:false});
+    btn.addEventListener('touchcancel', e => { input[action] = false; btn.classList.remove('active'); });
+    btn.addEventListener('mousedown', e => { e.preventDefault(); input[action] = true; btn.classList.add('active'); });
+    btn.addEventListener('mouseup', e => { e.preventDefault(); input[action] = false; btn.classList.remove('active'); });
+    btn.addEventListener('mouseleave', e => { input[action] = false; btn.classList.remove('active'); });
+  });
+
+  // Keyboard fallback
+  window.addEventListener('keydown', e => {
+    if (e.key === 'w' || e.key === 'ArrowUp') input.forward = true;
+    if (e.key === 's' || e.key === 'ArrowDown') input.backward = true;
+    if (e.key === 'a' || e.key === 'ArrowLeft') input.turnLeft = true;
+    if (e.key === 'd' || e.key === 'ArrowRight') input.turnRight = true;
+    if (e.key === 'q') input.left = true;
+    if (e.key === 'e') input.right = true;
+    if (e.key === ' ') input.shoot = true;
+  });
+  window.addEventListener('keyup', e => {
+    if (e.key === 'w' || e.key === 'ArrowUp') input.forward = false;
+    if (e.key === 's' || e.key === 'ArrowDown') input.backward = false;
+    if (e.key === 'a' || e.key === 'ArrowLeft') input.turnLeft = false;
+    if (e.key === 'd' || e.key === 'ArrowRight') input.turnRight = false;
+    if (e.key === 'q') input.left = false;
+    if (e.key === 'e') input.right = false;
+    if (e.key === ' ') input.shoot = false;
+  });
+}
+
+// ============ MAP HELPERS ============
+function isWall(x, y) {
+  const mx = Math.floor(x / TILE);
+  const my = Math.floor(y / TILE);
+  if (mx < 0 || mx >= MAP_W || my < 0 || my >= MAP_H) return true;
+  return MAP[my][mx] >= 1 && MAP[my][mx] <= 3;
+}
+
+function wallAt(mx, my) {
+  if (mx < 0 || mx >= MAP_W || my < 0 || my >= MAP_H) return 1;
+  const v = MAP[my][mx];
+  return (v >= 1 && v <= 3) ? v : 0;
+}
+
+// ============ PENGUINS ============
+function spawnWave() {
+  const spawnPoints = [];
+  for (let y = 0; y < MAP_H; y++)
+    for (let x = 0; x < MAP_W; x++)
+      if (MAP[y][x] === 9) spawnPoints.push({x: x*TILE+TILE/2, y: y*TILE+TILE/2});
+
+  const count = 3 + waveNum * 2;
+  for (let i = 0; i < count; i++) {
+    const sp = spawnPoints[i % spawnPoints.length];
+    const offsetX = (Math.random() - 0.5) * 40;
+    const offsetY = (Math.random() - 0.5) * 40;
+    penguins.push({
+      x: sp.x + offsetX,
+      y: sp.y + offsetY,
+      hp: PENGUIN_HP + waveNum,
+      alive: true,
+      lastAttack: 0,
+      frame: Math.random() * Math.PI * 2,
+      hit: 0
+    });
+  }
+}
+
+// ============ RAYCASTING ============
+function castRay(angle) {
+  let sin = Math.sin(angle), cos = Math.cos(angle);
+  // Avoid division by zero
+  if (Math.abs(sin) < 0.0001) sin = 0.0001;
+  if (Math.abs(cos) < 0.0001) cos = 0.0001;
+
+  // Horizontal intersections
+  let hDist = MAX_DEPTH, hx = 0, hy = 0, hSide = 0;
+  {
+    const up = sin < 0;
+    const firstY = up ? Math.floor(player.y / TILE) * TILE - 0.001 : Math.floor(player.y / TILE) * TILE + TILE;
+    const firstX = player.x + (firstY - player.y) / Math.tan(angle);
+    const stepY = up ? -TILE : TILE;
+    const stepX = stepY / Math.tan(angle);
+    let cx = firstX, cy = firstY;
+    for (let i = 0; i < 20; i++) {
+      const mx = Math.floor(cx / TILE), my = Math.floor(cy / TILE);
+      if (wallAt(mx, my)) {
+        hDist = Math.sqrt((cx - player.x) ** 2 + (cy - player.y) ** 2);
+        hx = cx; hy = cy; hSide = wallAt(mx, my);
+        break;
+      }
+      cx += stepX; cy += stepY;
+    }
+  }
+
+  // Vertical intersections
+  let vDist = MAX_DEPTH, vx = 0, vy = 0, vSide = 0;
+  {
+    const left = cos < 0;
+    const firstX = left ? Math.floor(player.x / TILE) * TILE - 0.001 : Math.floor(player.x / TILE) * TILE + TILE;
+    const firstY = player.y + (firstX - player.x) * Math.tan(angle);
+    const stepX = left ? -TILE : TILE;
+    const stepY = stepX * Math.tan(angle);
+    let cx = firstX, cy = firstY;
+    for (let i = 0; i < 20; i++) {
+      const mx = Math.floor(cx / TILE), my = Math.floor(cy / TILE);
+      if (wallAt(mx, my)) {
+        vDist = Math.sqrt((cx - player.x) ** 2 + (cy - player.y) ** 2);
+        vx = cx; vy = cy; vSide = wallAt(mx, my);
+        break;
+      }
+      cx += stepX; cy += stepY;
+    }
+  }
+
+  if (hDist < vDist) {
+    return { dist: hDist, x: hx, y: hy, side: 0, wallType: hSide };
+  } else {
+    return { dist: vDist, x: vx, y: vy, side: 1, wallType: vSide };
+  }
+}
+
+// ============ RENDERING ============
+function render() {
+  const w = canvas.width, h = canvas.height;
+  const halfH = h / 2;
+
+  // Sky gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, halfH);
+  skyGrad.addColorStop(0, '#0a0a2e');
+  skyGrad.addColorStop(1, '#1a1a4e');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, halfH);
+
+  // Floor gradient
+  const floorGrad = ctx.createLinearGradient(0, halfH, 0, h);
+  floorGrad.addColorStop(0, '#333');
+  floorGrad.addColorStop(1, '#1a1a1a');
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(0, halfH, w, halfH);
+
+  // Raycast walls
+  const numRays = w;
+  const wallDistances = new Float32Array(numRays);
+
+  for (let i = 0; i < numRays; i++) {
+    const rayAngle = player.angle - FOV / 2 + (i / numRays) * FOV;
+    const ray = castRay(rayAngle);
+
+    // Fix fisheye
+    const dist = ray.dist * Math.cos(rayAngle - player.angle);
+    wallDistances[i] = dist;
+
+    const wallH = Math.min((TILE * h) / dist, h * 2);
+    const wallTop = halfH - wallH / 2;
+
+    // Wall colors by type
+    let r, g, b;
+    if (ray.wallType === 1) { r = 100; g = 100; b = 120; }
+    else if (ray.wallType === 2) { r = 120; g = 80; b = 80; }
+    else { r = 80; g = 100; b = 80; }
+
+    // Shading by side and distance
+    const shade = ray.side === 1 ? 0.7 : 1.0;
+    const distFade = Math.max(0.15, 1 - dist / MAX_DEPTH);
+    const factor = shade * distFade;
+
+    ctx.fillStyle = `rgb(${Math.floor(r*factor)},${Math.floor(g*factor)},${Math.floor(b*factor)})`;
+    ctx.fillRect(i, wallTop, 1, wallH);
+
+    // Wall top edge highlight
+    ctx.fillStyle = `rgba(255,255,255,${0.1 * factor})`;
+    ctx.fillRect(i, wallTop, 1, 2);
+  }
+
+  // ============ RENDER PENGUINS (Sprites) ============
+  const sprites = [];
+  for (const p of penguins) {
+    if (!p.alive) continue;
+    const dx = p.x - player.x;
+    const dy = p.y - player.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const angle = Math.atan2(dy, dx);
+    let relAngle = angle - player.angle;
+    // Normalize
+    while (relAngle > Math.PI) relAngle -= Math.PI * 2;
+    while (relAngle < -Math.PI) relAngle += Math.PI * 2;
+
+    if (Math.abs(relAngle) < FOV / 2 + 0.2) {
+      sprites.push({ p, dist, relAngle });
+    }
+  }
+
+  // Sort back to front
+  sprites.sort((a, b) => b.dist - a.dist);
+
+  for (const s of sprites) {
+    const { p, dist, relAngle } = s;
+    const fixedDist = dist * Math.cos(relAngle);
+    const sprH = Math.min((TILE * h * 0.8) / fixedDist, h);
+    const sprW = sprH * 0.6;
+    const screenX = (relAngle / FOV + 0.5) * w;
+    const screenY = halfH - sprH / 2 + sprH * 0.1;
+
+    const startX = Math.max(0, Math.floor(screenX - sprW / 2));
+    const endX = Math.min(w, Math.floor(screenX + sprW / 2));
+
+    // Check if behind walls
+    let visible = false;
+    for (let x = startX; x < endX; x++) {
+      if (x >= 0 && x < numRays && wallDistances[x] > fixedDist) { visible = true; break; }
+    }
+    if (!visible) continue;
+
+    const distFade = Math.max(0.2, 1 - fixedDist / MAX_DEPTH);
+    const hitFlash = p.hit > 0 ? 1 : 0;
+
+    // Draw penguin sprite (pixel art style)
+    drawPenguin(ctx, screenX, screenY, sprW, sprH, distFade, hitFlash, p.frame, fixedDist, wallDistances, numRays);
+  }
+
+  // ============ PARTICLES ============
+  for (const pt of particles) {
+    const dx = pt.x - player.x;
+    const dy = pt.y - player.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const angle = Math.atan2(dy, dx);
+    let relAngle = angle - player.angle;
+    while (relAngle > Math.PI) relAngle -= Math.PI * 2;
+    while (relAngle < -Math.PI) relAngle += Math.PI * 2;
+
+    if (Math.abs(relAngle) < FOV / 2) {
+      const fixedDist = dist * Math.cos(relAngle);
+      const size = Math.max(1, (20 / fixedDist) * h);
+      const sx = (relAngle / FOV + 0.5) * w;
+      const sy = halfH + (pt.z / fixedDist) * h;
+      ctx.fillStyle = `rgba(${pt.r},${pt.g},${pt.b},${pt.life})`;
+      ctx.fillRect(sx - size/2, sy - size/2, size, size);
+    }
+  }
+
+  // Muzzle flash
+  if (muzzleFlash > 0) {
+    ctx.fillStyle = `rgba(255,200,50,${muzzleFlash * 0.3})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // Damage flash
+  if (player.damageFlash > 0) {
+    ctx.fillStyle = `rgba(255,0,0,${player.damageFlash * 0.3})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // Draw weapon
+  drawWeapon();
+}
+
+function drawPenguin(ctx, cx, cy, w, h, fade, hit, frame, dist, wallDists, numRays) {
+  const canvasW = canvas.width;
+  // Bobbing
+  const bob = Math.sin(frame) * h * 0.03;
+  const baseY = cy + bob;
+
+  // Body colors
+  const bodyBlack = hit ? `rgb(255,${Math.floor(100*fade)},${Math.floor(100*fade)})` : `rgb(${Math.floor(20*fade)},${Math.floor(20*fade)},${Math.floor(30*fade)})`;
+  const bodyWhite = hit ? `rgb(255,${Math.floor(180*fade)},${Math.floor(180*fade)})` : `rgb(${Math.floor(220*fade)},${Math.floor(220*fade)},${Math.floor(230*fade)})`;
+  const beakColor = `rgb(${Math.floor(240*fade)},${Math.floor(160*fade)},${Math.floor(30*fade)})`;
+  const eyeColor = hit ? `rgb(255,0,0)` : `rgb(${Math.floor(255*fade)},${Math.floor(255*fade)},${Math.floor(255*fade)})`;
+  const feetColor = `rgb(${Math.floor(240*fade)},${Math.floor(140*fade)},${Math.floor(20*fade)})`;
+
+  // Helper to only draw if in front of walls
+  const drawRect = (x, y, rw, rh, color) => {
+    const sx = Math.max(0, Math.floor(x));
+    const ex = Math.min(canvasW, Math.floor(x + rw));
+    for (let px = sx; px < ex; px++) {
+      if (px >= 0 && px < numRays && wallDists[px] > dist) {
+        ctx.fillStyle = color;
+        ctx.fillRect(px, y, 1, rh);
+      }
+    }
+  };
+
+  // Body (black outer)
+  drawRect(cx - w*0.35, baseY, w*0.7, h*0.65, bodyBlack);
+  // Belly (white)
+  drawRect(cx - w*0.2, baseY + h*0.08, w*0.4, h*0.5, bodyWhite);
+  // Head
+  drawRect(cx - w*0.25, baseY - h*0.15, w*0.5, h*0.2, bodyBlack);
+  // Eyes
+  drawRect(cx - w*0.14, baseY - h*0.08, w*0.08, h*0.06, eyeColor);
+  drawRect(cx + w*0.06, baseY - h*0.08, w*0.08, h*0.06, eyeColor);
+  // Pupils
+  const pupilColor = `rgb(0,0,0)`;
+  drawRect(cx - w*0.11, baseY - h*0.06, w*0.04, h*0.03, pupilColor);
+  drawRect(cx + w*0.08, baseY - h*0.06, w*0.04, h*0.03, pupilColor);
+  // Beak
+  drawRect(cx - w*0.08, baseY - h*0.01, w*0.16, h*0.06, beakColor);
+  // Flippers
+  const flipAnim = Math.sin(frame * 2) * w * 0.05;
+  drawRect(cx - w*0.42 + flipAnim, baseY + h*0.05, w*0.1, h*0.35, bodyBlack);
+  drawRect(cx + w*0.32 - flipAnim, baseY + h*0.05, w*0.1, h*0.35, bodyBlack);
+  // Feet
+  drawRect(cx - w*0.2, baseY + h*0.63, w*0.15, h*0.06, feetColor);
+  drawRect(cx + w*0.05, baseY + h*0.63, w*0.15, h*0.06, feetColor);
+
+  // Angry eyebrows (red tint indicating hostility)
+  const browColor = `rgb(${Math.floor(180*fade)},${Math.floor(30*fade)},${Math.floor(30*fade)})`;
+  drawRect(cx - w*0.18, baseY - h*0.13, w*0.14, h*0.03, browColor);
+  drawRect(cx + w*0.04, baseY - h*0.13, w*0.14, h*0.03, browColor);
+}
+
+function drawWeapon() {
+  const wc = document.getElementById('weaponSprite');
+  const c = wCtx;
+  c.clearRect(0, 0, 200, 200);
+
+  const bob = Math.sin(weaponBob) * 4;
+  const kick = weaponKick * 20;
+
+  c.save();
+  c.translate(100, 200 + kick);
+
+  // Gun barrel
+  c.fillStyle = '#555';
+  c.fillRect(85 + bob, 80, 30, 80);
+  c.fillStyle = '#444';
+  c.fillRect(80 + bob, 100, 40, 70);
+  // Muzzle
+  c.fillStyle = '#333';
+  c.fillRect(90 + bob, 70, 20, 15);
+
+  // Handle
+  c.fillStyle = '#663300';
+  c.fillRect(82 + bob, 160, 36, 40);
+
+  // Muzzle flash
+  if (muzzleFlash > 0) {
+    c.fillStyle = `rgba(255,200,50,${muzzleFlash})`;
+    c.beginPath();
+    c.arc(100 + bob, 70, 25 * muzzleFlash, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = `rgba(255,255,200,${muzzleFlash * 0.8})`;
+    c.beginPath();
+    c.arc(100 + bob, 70, 12 * muzzleFlash, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  c.restore();
+}
+
+// ============ GAME LOGIC ============
+function update() {
+  if (gameOver) return;
+
+  // Movement
+  const moveX = Math.cos(player.angle) * MOVE_SPEED;
+  const moveY = Math.sin(player.angle) * MOVE_SPEED;
+  const strafeX = Math.cos(player.angle + Math.PI/2) * MOVE_SPEED;
+  const strafeY = Math.sin(player.angle + Math.PI/2) * MOVE_SPEED;
+
+  let dx = 0, dy = 0;
+  if (input.forward) { dx += moveX; dy += moveY; }
+  if (input.backward) { dx -= moveX; dy -= moveY; }
+  if (input.left) { dx -= strafeX; dy -= strafeY; }
+  if (input.right) { dx += strafeX; dy += strafeY; }
+
+  // Collision
+  const margin = 12;
+  if (!isWall(player.x + dx + margin * Math.sign(dx), player.y)) player.x += dx;
+  if (!isWall(player.x, player.y + dy + margin * Math.sign(dy))) player.y += dy;
+
+  // Rotation
+  if (input.turnLeft) player.angle -= ROT_SPEED;
+  if (input.turnRight) player.angle += ROT_SPEED;
+
+  // Weapon bob
+  if (input.forward || input.backward || input.left || input.right) {
+    weaponBob += 0.15;
+  }
+
+  // Shooting
+  const now = Date.now();
+  if (input.shoot && now - lastShot > SHOOT_COOLDOWN && player.ammo > 0) {
+    lastShot = now;
+    player.ammo--;
+    muzzleFlash = 1;
+    weaponKick = 1;
+
+    // Hitscan
+    const ray = castRay(player.angle);
+    let hitPenguin = null;
+    let closestDist = ray.dist;
+
+    for (const p of penguins) {
+      if (!p.alive) continue;
+      const dx = p.x - player.x;
+      const dy = p.y - player.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const angle = Math.atan2(dy, dx);
+      let relAngle = angle - player.angle;
+      while (relAngle > Math.PI) relAngle -= Math.PI * 2;
+      while (relAngle < -Math.PI) relAngle += Math.PI * 2;
+
+      // Wider hitbox at close range
+      const hitWidth = Math.max(0.04, 0.15 - dist / 2000);
+      if (Math.abs(relAngle) < hitWidth && dist < closestDist) {
+        closestDist = dist;
+        hitPenguin = p;
+      }
+    }
+
+    if (hitPenguin) {
+      hitPenguin.hp--;
+      hitPenguin.hit = 8;
+      // Blood particles
+      for (let i = 0; i < 5; i++) {
+        particles.push({
+          x: hitPenguin.x + (Math.random()-0.5)*20,
+          y: hitPenguin.y + (Math.random()-0.5)*20,
+          z: (Math.random()-0.5)*20,
+          vx: (Math.random()-0.5)*2,
+          vy: (Math.random()-0.5)*2,
+          vz: Math.random()*2,
+          r: 200, g: 50, b: 50,
+          life: 1
+        });
+      }
+
+      if (hitPenguin.hp <= 0) {
+        hitPenguin.alive = false;
+        player.score += 100 * waveNum;
+        player.kills++;
+        // Death particles
+        for (let i = 0; i < 15; i++) {
+          particles.push({
+            x: hitPenguin.x + (Math.random()-0.5)*30,
+            y: hitPenguin.y + (Math.random()-0.5)*30,
+            z: (Math.random()-0.5)*20,
+            vx: (Math.random()-0.5)*3,
+            vy: (Math.random()-0.5)*3,
+            vz: Math.random()*3,
+            r: Math.random() > 0.5 ? 20 : 220,
+            g: Math.random() > 0.5 ? 20 : 220,
+            b: Math.random() > 0.5 ? 30 : 230,
+            life: 1
+          });
+        }
+
+        // Ammo drop
+        if (Math.random() < 0.4) {
+          player.ammo = Math.min(99, player.ammo + 5);
+          showMessage('+5 AMMO', 800);
+        }
+
+        // Health drop
+        if (Math.random() < 0.25) {
+          player.health = Math.min(100, player.health + 10);
+          showMessage('+10 HP', 800);
+        }
+      }
+    }
+  }
+
+  // Muzzle flash decay
+  if (muzzleFlash > 0) muzzleFlash = Math.max(0, muzzleFlash - 0.15);
+  if (weaponKick > 0) weaponKick = Math.max(0, weaponKick - 0.12);
+
+  // Damage flash
+  if (player.damageFlash > 0) player.damageFlash -= 0.08;
+
+  // Update penguins
+  for (const p of penguins) {
+    if (!p.alive) continue;
+    p.frame += 0.08;
+    if (p.hit > 0) p.hit--;
+
+    // Move toward player
+    const dx = player.x - p.x;
+    const dy = player.y - p.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+
+    if (dist > PENGUIN_ATTACK_RANGE) {
+      const speed = PENGUIN_SPEED + waveNum * 0.15;
+      const nx = (dx / dist) * speed;
+      const ny = (dy / dist) * speed;
+      const newX = p.x + nx;
+      const newY = p.y + ny;
+      if (!isWall(newX, newY)) {
+        p.x = newX;
+        p.y = newY;
+      } else if (!isWall(newX, p.y)) {
+        p.x = newX;
+      } else if (!isWall(p.x, newY)) {
+        p.y = newY;
+      }
+    } else {
+      // Attack
+      if (now - p.lastAttack > PENGUIN_ATTACK_COOLDOWN) {
+        p.lastAttack = now;
+        player.health -= PENGUIN_DAMAGE;
+        player.damageFlash = 1;
+        if (player.health <= 0) {
+          player.health = 0;
+          gameOver = true;
+          showMessage('GAME OVER\nTap to restart', 999999);
+          setTimeout(() => {
+            document.addEventListener('click', restartGame, {once:true});
+            document.addEventListener('touchstart', restartGame, {once:true});
+          }, 1000);
+        }
+      }
+    }
+  }
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const pt = particles[i];
+    pt.x += pt.vx;
+    pt.y += pt.vy;
+    pt.z += pt.vz;
+    pt.vz -= 0.1;
+    pt.life -= 0.03;
+    if (pt.life <= 0) particles.splice(i, 1);
+  }
+
+  // Check wave complete
+  if (penguins.every(p => !p.alive)) {
+    waveNum++;
+    if (waveNum > 10) {
+      showMessage('YOU WIN!\nAntarctica is saved!', 999999);
+      gameOver = true;
+    } else {
+      player.ammo = Math.min(99, player.ammo + 15);
+      player.health = Math.min(100, player.health + 20);
+      showMessage(`WAVE ${waveNum} INCOMING!`, 2000);
+      setTimeout(() => spawnWave(), 2000);
+    }
+  }
+
+  // Update HUD
+  document.getElementById('healthHud').textContent = `HP: ${player.health}`;
+  document.getElementById('ammoHud').textContent = `AMMO: ${player.ammo}`;
+  document.getElementById('scoreHud').textContent = `SCORE: ${player.score}`;
+  document.getElementById('killsHud').textContent = `KILLS: ${player.kills}`;
+}
+
+function showMessage(text, duration) {
+  const el = document.getElementById('message');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(msgTimeout);
+  msgTimeout = setTimeout(() => el.classList.remove('show'), duration);
+}
+
+function restartGame() {
+  player = { x: 96, y: 96, angle: 0, health: 100, ammo: 50, score: 0, kills: 0, damageFlash: 0 };
+  penguins = [];
+  particles = [];
+  waveNum = 1;
+  gameOver = false;
+  spawnWave();
+  showMessage(`WAVE 1 - EXTERMINATE!`, 2000);
+}
+
+// ============ GAME LOOP ============
+let lastTime = 0;
+function gameLoop(time) {
+  if (!gameRunning) return;
+  const delta = time - lastTime;
+  lastTime = time;
+
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+// Init damage flash
+player.damageFlash = 0;
+</script>
+
+</body>
+</html>

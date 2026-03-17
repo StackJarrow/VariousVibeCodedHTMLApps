@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>12-Lead ECG Interpreter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-deep: #070d17;
+    --bg-primary: #0b1321;
+    --bg-card: #101e30;
+    --bg-input: #0a1525;
+    --border: #1a2d4a;
+    --border-focus: #4facfe;
+    --text-primary: #dfe8f2;
+    --text-secondary: #8a9ec0;
+    --text-dim: #4e6285;
+    --accent: #4facfe;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    --sans: 'DM Sans', -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg-deep);
+    color: var(--text-secondary);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #0d1b2e 0%, #162640 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .header-inner { max-width: 960px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .header-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(239,68,68,0.25);
+  }
+  .header h1 { font-size: 19px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.3px; }
+  .header-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 1.8px; text-transform: uppercase; margin-top: 2px; }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  /* Warning Banner */
+  .warning-banner {
+    background: rgba(251,191,36,0.06);
+    border: 1px solid rgba(251,191,36,0.18);
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 12px; color: var(--yellow); margin-bottom: 24px; line-height: 1.6;
+  }
+
+  /* Input Grid */
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 18px; margin-bottom: 28px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    letter-spacing: 1.8px; text-transform: uppercase;
+    margin-bottom: 18px; padding-bottom: 10px;
+    border-bottom: 1px solid #152035;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label {
+    display: block; font-size: 11px; font-weight: 700;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--text-secondary); margin-bottom: 5px;
+  }
+  .field-hint { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-style: italic; }
+
+  .num-row { display: flex; align-items: center; gap: 8px; }
+  .num-input {
+    width: 110px; padding: 9px 11px;
+    border: 1px solid var(--border); border-radius: 7px;
+    background: var(--bg-input); color: var(--text-primary);
+    font-size: 15px; font-family: var(--mono);
+    outline: none; transition: border-color 0.15s;
+  }
+  .num-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,172,254,0.12); }
+  .num-input::placeholder { color: var(--text-dim); }
+  .num-unit { font-size: 13px; color: var(--text-dim); }
+  .calc-note { font-size: 12px; color: var(--accent); margin-top: 4px; }
+
+  /* Chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 5px 13px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-secondary); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; font-family: var(--mono);
+    user-select: none;
+  }
+  .chip:hover { border-color: #2a4a6e; color: var(--text-primary); }
+  .chip.active {
+    border-color: var(--accent); background: rgba(79,172,254,0.13);
+    color: var(--accent); font-weight: 700;
+  }
+  .chip-note { font-size: 10px; color: var(--text-dim); margin-top: 5px; }
+
+  /* Results */
+  .results-header {
+    font-size: 15px; font-weight: 800; color: var(--text-primary);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .result-card {
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; margin-bottom: 12px;
+    border-left: 3px solid var(--accent);
+  }
+  .result-card[data-accent="green"] { border-left-color: var(--green); }
+  .result-card[data-accent="yellow"] { border-left-color: var(--yellow); }
+  .result-card[data-accent="red"] { border-left-color: var(--red); }
+  .result-card[data-accent="blue"] { border-left-color: var(--blue); }
+  .result-card[data-accent="purple"] { border-left-color: var(--purple); }
+
+  .result-title {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 14px; color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+  .result-icon { font-size: 18px; }
+
+  .badge {
+    display: inline-block; padding: 3px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 700; font-family: var(--mono);
+  }
+  .badge-lg { padding: 4px 15px; font-size: 13px; }
+  .badge-green { background: rgba(52,211,153,0.12); color: var(--green); border: 1px solid rgba(52,211,153,0.25); }
+  .badge-yellow { background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.25); }
+  .badge-red { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.25); }
+  .badge-blue { background: rgba(96,165,250,0.12); color: var(--blue); border: 1px solid rgba(96,165,250,0.25); }
+  .badge-purple { background: rgba(167,139,250,0.12); color: var(--purple); border: 1px solid rgba(167,139,250,0.25); }
+
+  .result-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 8px; }
+  .result-formula { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
+  .result-big-num { font-size: 30px; font-weight: 800; font-family: var(--mono); margin-bottom: 6px; }
+  .result-criteria { margin: 10px 0 0 4px; list-style: none; }
+  .result-criteria li { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; line-height: 1.5; }
+  .result-criteria li::before { content: "• "; color: var(--text-dim); }
+  .result-criteria li.warn { color: var(--yellow); font-weight: 700; }
+  .result-criteria li.warn::before { content: ""; }
+
+  /* ST Finding Box */
+  .st-finding {
+    border-radius: 8px; padding: 14px; margin-bottom: 10px;
+    border: 1px solid var(--border); background: rgba(79,172,254,0.03);
+  }
+  .st-finding.critical { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.25); }
+  .st-finding:last-child { margin-bottom: 0; }
+  .st-row { font-size: 13px; margin-bottom: 5px; }
+  .st-label { color: var(--text-dim); }
+  .st-val { color: var(--text-primary); font-weight: 700; font-family: var(--mono); }
+  .st-artery { color: var(--yellow); font-weight: 600; }
+  .st-recip { color: var(--green); font-weight: 700; font-family: var(--mono); }
+  .st-recip-note { color: var(--green); font-size: 11px; margin-left: 6px; }
+  .st-note { font-size: 12px; color: var(--yellow); margin-top: 6px; font-style: italic; }
+
+  .posterior-warn {
+    margin-top: 8px; padding: 8px 12px; border-radius: 6px;
+    background: rgba(248,113,113,0.07); font-size: 13px;
+    color: var(--yellow); font-weight: 600;
+  }
+
+  /* Ref Map */
+  .ref-map { margin-top: 22px; }
+  .ref-map h3 {
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .ref-item {
+    background: var(--bg-input); border-radius: 8px; padding: 12px;
+    border: 1px solid #14243a;
+  }
+  .ref-territory { font-weight: 700; font-size: 13px; color: var(--text-primary); margin-bottom: 3px; }
+  .ref-leads { font-size: 12px; color: var(--accent); font-family: var(--mono); margin-bottom: 3px; }
+  .ref-artery { font-size: 11px; color: var(--text-secondary); }
+
+  /* Empty State */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+  .empty-icon { font-size: 52px; opacity: 0.3; margin-bottom: 14px; }
+  .empty-title { font-size: 17px; font-weight: 700; color: #2a3f60; margin-bottom: 8px; }
+  .empty-desc { font-size: 13px; max-width: 420px; margin: 0 auto; line-height: 1.7; }
+
+  /* Clear Button */
+  .clear-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 7px;
+    border: 1px solid #2a1a1a; background: rgba(248,113,113,0.06);
+    color: var(--red); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; margin-bottom: 20px;
+  }
+  .clear-btn:hover { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.3); }
+
+  @media (max-width: 600px) {
+    .input-grid { grid-template-columns: 1fr; }
+    .ref-grid { grid-template-columns: 1fr 1fr; }
+    .header h1 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-icon">♥</div>
+    <div>
+      <h1>12-Lead ECG Interpreter</h1>
+      <div class="header-sub">Clinical Decision Support Tool</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="warning-banner">
+    ⚠️ <strong>Educational &amp; reference tool only.</strong> Not a substitute for clinical judgment. Always correlate with patient presentation, history, and serial ECGs. Verify all calculations independently.
+  </div>
+
+  <div class="input-grid">
+    <!-- Intervals & Rate -->
+    <div class="card">
+      <div class="card-title">Intervals &amp; Rate</div>
+
+      <div class="field">
+        <label class="field-label">Heart Rate</label>
+        <div class="num-row">
+          <input class="num-input" type="number" id="hr" placeholder="bpm" min="0" max="400">
+          <span class="num-unit">bpm</span>
+        </div>
+        <div class="calc-note" id="hr-calc"></div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">R-R Interval</label>
+        <div class="num-row">
+          <input class="num-input" type="number" id="rr" placeholder="ms" min="0" max="3000">
+          <span class="num-unit">ms</span>
+        </div>
+        <div class="calc-note" id="rr-calc"></div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">PR Interval</label>
+        <div class="field-hint">Normal: 120–200 ms</div>
+        <div class="num-row">
+          <input class="num-input" type="number" id="pr" placeholder="ms" min="0" max="600">
+          <span class="num-unit">ms</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">QRS Duration</label>
+        <div class="field-hint">Normal: 80–120 ms</div>
+        <div class="num-row">
+          <input class="num-input" type="number" id="qrs" placeholder="ms" min="0" max="400">
+          <span class="num-unit">ms</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">QT Interval</label>
+        <div class="field-hint">Measured QT (not corrected)</div>
+        <div class="num-row">
+          <input class="num-input" type="number" id="qt" placeholder="ms" min="0" max="700">
+          <span class="num-unit">ms</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ST Segment Changes -->
+    <div class="card">
+      <div class="card-title">ST Segment Changes</div>
+
+      <div class="field">
+        <label class="field-label">ST Elevation</label>
+        <div class="field-hint">Select all leads with ST elevation</div>
+        <div class="chips" id="ste-chips"></div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">ST Depression</label>
+        <div class="field-hint">Select all leads with ST depression</div>
+        <div class="chips" id="std-chips"></div>
+      </div>
+    </div>
+
+    <!-- Axis & Conduction -->
+    <div class="card">
+      <div class="card-title">Axis &amp; Conduction</div>
+
+      <div class="field">
+        <label class="field-label">QRS Polarity — Lead I</label>
+        <div class="field-hint">Net QRS deflection</div>
+        <div class="chips" id="lead1-chips"></div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">QRS Polarity — aVF</label>
+        <div class="field-hint">Net QRS deflection</div>
+        <div class="chips" id="avf-chips"></div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">V1 QRS Morphology</label>
+        <div class="field-hint">For BBB classification</div>
+        <div class="chips" id="v1-chips"></div>
+        <div class="chip-note">rsR' = RBBB pattern · QS/rS = LBBB pattern</div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">V6 QRS Morphology</label>
+        <div class="chips" id="v6-chips"></div>
+        <div class="chip-note">qRS + wide S = RBBB · Monophasic R = LBBB</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<script>
+const LEADS = ["I","II","III","aVR","aVL","aVF","V1","V2","V3","V4","V5","V6"];
+
+const TERRITORY = {
+  "Septal":    { leads:["V1","V2"], artery:"LAD (Left Anterior Descending)", recip:["II","III","aVF"] },
+  "Anterior":  { leads:["V3","V4"], artery:"LAD (Left Anterior Descending)", recip:["II","III","aVF"] },
+  "Lateral":   { leads:["I","aVL","V5","V6"], artery:"LCx (Left Circumflex)", recip:["II","III","aVF"] },
+  "Inferior":  { leads:["II","III","aVF"], artery:"RCA (Right Coronary Artery) — or LCx in left-dominant systems", recip:["I","aVL"] },
+  "Right Ventricular": { leads:["V1"], artery:"Proximal RCA (Right Coronary Artery)", recip:[] },
+};
+
+const EXT_ANT = ["V1","V2","V3","V4","V5","V6"];
+
+// State
+const state = {
+  hr:"", rr:"", pr:"", qrs:"", qt:"",
+  ste: new Set(), std: new Set(),
+  leadI:"", avf:"", v1:"", v6:""
+};
+
+// Chip builders
+function buildMultiChips(containerId, options, stateSet) {
+  const el = document.getElementById(containerId);
+  options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "chip";
+    btn.textContent = opt;
+    btn.addEventListener("click", () => {
+      if (stateSet.has(opt)) stateSet.delete(opt); else stateSet.add(opt);
+      btn.classList.toggle("active", stateSet.has(opt));
+      render();
+    });
+    el.appendChild(btn);
+  });
+}
+
+function buildSingleChips(containerId, options, stateKey) {
+  const el = document.getElementById(containerId);
+  const btns = [];
+  options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "chip";
+    btn.textContent = opt;
+    btn.addEventListener("click", () => {
+      state[stateKey] = state[stateKey] === opt ? "" : opt;
+      btns.forEach(b => b.classList.toggle("active", b.textContent === state[stateKey]));
+      render();
+    });
+    el.appendChild(btn);
+    btns.push(btn);
+  });
+}
+
+buildMultiChips("ste-chips", LEADS, state.ste);
+buildMultiChips("std-chips", LEADS, state.std);
+buildSingleChips("lead1-chips", ["Positive","Negative"], "leadI");
+buildSingleChips("avf-chips", ["Positive","Negative"], "avf");
+buildSingleChips("v1-chips", ["rsR'","QS / rS"], "v1");
+buildSingleChips("v6-chips", ["qRS","Mono R"], "v6");
+
+// Input listeners
+["hr","rr","pr","qrs","qt"].forEach(id => {
+  document.getElementById(id).addEventListener("input", e => {
+    state[id] = e.target.value;
+    render();
+  });
+});
+
+// Helpers
+function badge(text, color, large) {
+  return `<span class="badge ${large?'badge-lg':''} badge-${color}">${text}</span>`;
+}
+
+function resultCard(title, icon, accent, content) {
+  return `<div class="result-card" data-accent="${accent}">
+    <div class="result-title"><span class="result-icon">${icon}</span>${title}</div>
+    ${content}
+  </div>`;
+}
+
+// Render
+function render() {
+  const hr = parseFloat(state.hr);
+  const rr = parseFloat(state.rr);
+  const pr = parseFloat(state.pr);
+  const qrs = parseFloat(state.qrs);
+  const qt = parseFloat(state.qt);
+
+  // Cross-calc
+  const hrFromRR = rr > 0 ? Math.round(60000/rr) : null;
+  const rrFromHR = hr > 0 ? Math.round(60000/hr) : null;
+  document.getElementById("hr-calc").textContent = (!hr && hrFromRR) ? `Calculated from R-R: ${hrFromRR} bpm` : "";
+  document.getElementById("rr-calc").textContent = (!rr && rrFromHR) ? `Calculated from HR: ${rrFromHR} ms` : "";
+
+  const effectiveHR = hr || hrFromRR;
+  const effectiveRR = rr || rrFromHR;
+
+  // QTc
+  let qtc = null;
+  if (qt > 0 && effectiveRR > 0) qtc = Math.round(qt / Math.sqrt(effectiveRR / 1000));
+
+  const hasInput = hr || rr || pr || qrs || qt || state.ste.size || state.std.size || state.leadI || state.avf || state.v1 || state.v6;
+
+  if (!hasInput) {
+    document.getElementById("results").innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">♥</div>
+        <div class="empty-title">Enter ECG findings above</div>
+        <div class="empty-desc">Input intervals, ST changes, axis data, and QRS morphology to generate a comprehensive interpretation with territory mapping and clinical considerations.</div>
+      </div>`;
+    return;
+  }
+
+  let html = `<div class="results-header">📋 Interpretation</div>`;
+  html += `<button class="clear-btn" onclick="clearAll()">✕ Clear All</button>`;
+
+  // HR
+  if (effectiveHR) {
+    let hrText, hrColor;
+    if (effectiveHR < 60) { hrText = `Bradycardia (${effectiveHR} bpm)`; hrColor = "blue"; }
+    else if (effectiveHR <= 100) { hrText = `Normal Rate (${effectiveHR} bpm)`; hrColor = "green"; }
+    else { hrText = `Tachycardia (${effectiveHR} bpm)`; hrColor = "red"; }
+    let extra = "";
+    if (!hr && hrFromRR) extra = `<div class="result-detail">Derived from R-R interval: <strong style="color:var(--text-primary)">${hrFromRR} bpm</strong></div>`;
+    if (hr && rrFromHR) extra = `<div class="result-detail">Corresponding R-R interval: <strong style="color:var(--text-primary)">${rrFromHR} ms</strong></div>`;
+    html += resultCard("Heart Rate", "💓", hrColor, badge(hrText, hrColor, true) + extra);
+  }
+
+  // PR
+  if (pr > 0) {
+    let prText, prColor, prDetail = "";
+    if (pr < 120) { prText = "Short PR (<120 ms)"; prColor = "yellow"; prDetail = "Consider pre-excitation (WPW), junctional rhythm, or ectopic atrial rhythm. Look for delta waves."; }
+    else if (pr <= 200) { prText = "Normal PR (120–200 ms)"; prColor = "green"; }
+    else { prText = "Prolonged PR (>200 ms) — 1st Degree AV Block"; prColor = "yellow"; prDetail = "Usually benign. Can be caused by increased vagal tone, beta-blockers, CCBs, digoxin, or structural heart disease."; }
+    html += resultCard("PR Interval", "⏱", prColor, badge(prText, prColor, true) + (prDetail ? `<div class="result-detail">${prDetail}</div>` : ""));
+  }
+
+  // QRS
+  if (qrs > 0) {
+    let qrsText, qrsColor, qrsDetail = "";
+    if (qrs < 80) { qrsText = "Narrow QRS (<80 ms)"; qrsColor = "green"; qrsDetail = "Normal ventricular conduction."; }
+    else if (qrs <= 120) { qrsText = "Normal QRS (80–120 ms)"; qrsColor = "green"; }
+    else if (qrs <= 150) { qrsText = "Wide QRS (120–150 ms)"; qrsColor = "yellow"; qrsDetail = "Possible BBB, IVCD, or ventricular paced rhythm."; }
+    else { qrsText = "Very Wide QRS (>150 ms)"; qrsColor = "red"; qrsDetail = "Consider ventricular rhythm, hyperkalemia, Na-channel blocker toxicity, or severe BBB."; }
+    html += resultCard("QRS Duration", "📐", qrsColor, badge(qrsText, qrsColor, true) + (qrsDetail ? `<div class="result-detail">${qrsDetail}</div>` : ""));
+  }
+
+  // QTc
+  if (qtc) {
+    let qtcText, qtcColor, qtcDetail = "";
+    if (qtc < 350) { qtcText = "Short QTc (<350 ms)"; qtcColor = "yellow"; qtcDetail = "Consider: hypercalcemia, digitalis, genetic short QT syndrome."; }
+    else if (qtc <= 440) { qtcText = "Normal QTc (350–440 ms)"; qtcColor = "green"; }
+    else if (qtc <= 500) { qtcText = "Borderline/Prolonged QTc (440–500 ms)"; qtcColor = "yellow"; qtcDetail = "Monitor closely. Review meds (antiarrhythmics, antibiotics, antipsychotics), electrolytes (Mg²⁺, K⁺, Ca²⁺)."; }
+    else { qtcText = "Critically Prolonged QTc (>500 ms)"; qtcColor = "red"; qtcDetail = "HIGH risk of Torsades de Pointes. Immediate med review, replete Mg²⁺/K⁺, continuous monitoring."; }
+    html += resultCard("QTc (Bazett)", "⚡", qtcColor,
+      `<div class="result-big-num" style="color:var(--${qtcColor})">${qtc} <span style="font-size:14px;color:var(--text-dim)">ms</span></div>` +
+      badge(qtcText, qtcColor, true) +
+      (qtcDetail ? `<div class="result-detail">${qtcDetail}</div>` : "") +
+      `<div class="result-formula">Formula: QTc = QT / √(RR in seconds) — Bazett's correction</div>`
+    );
+  }
+
+  // Axis
+  if (state.leadI && state.avf) {
+    const li = state.leadI.toLowerCase();
+    const af = state.avf.toLowerCase();
+    let axText, axColor, axDetail;
+    if (li === "positive" && af === "positive") { axText = "Normal Axis (0° to +90°)"; axColor = "green"; axDetail = "Both Lead I and aVF have upright QRS complexes."; }
+    else if (li === "positive" && af === "negative") { axText = "Left Axis Deviation (−30° to −90°)"; axColor = "yellow"; axDetail = "Upright in Lead I, negative in aVF. Consider LVH, LAFB, inferior MI."; }
+    else if (li === "negative" && af === "positive") { axText = "Right Axis Deviation (+90° to +180°)"; axColor = "yellow"; axDetail = "Negative in Lead I, upright in aVF. Consider RVH, LPFB, PE, lateral MI."; }
+    else { axText = "Extreme Axis Deviation (Northwest Axis)"; axColor = "red"; axDetail = "Both negative — 'no man's land.' Consider ventricular rhythm, severe RVH, or lead misplacement."; }
+    html += resultCard("QRS Axis", "🧭", axColor, badge(axText, axColor, true) + `<div class="result-detail">${axDetail}</div>`);
+  }
+
+  // BBB
+  if (qrs >= 120 && (state.v1 || state.v6)) {
+    let bbb = null;
+    const isRBBBv1 = state.v1 === "rsR'";
+    const isRBBBv6 = state.v6 === "qRS";
+    const isLBBBv1 = state.v1 === "QS / rS";
+    const isLBBBv6 = state.v6 === "Mono R";
+
+    if (isRBBBv1 && isRBBBv6) {
+      bbb = { type: qrs >= 120 ? "Right Bundle Branch Block (RBBB)" : "Incomplete RBBB", color: "blue",
+        detail: "RSR' pattern in V1 with wide S in V6. Check for PE, ASD, RV strain.",
+        criteria: ["QRS ≥ 120 ms", "RSR' ('M-shaped') in V1", "Wide slurred S wave in I, V6", "Consider: PE, ASD, RV strain, ischemia"] };
+    } else if (isLBBBv1 && isLBBBv6) {
+      bbb = { type: qrs >= 120 ? "Left Bundle Branch Block (LBBB)" : "Incomplete LBBB", color: "purple",
+        detail: "Broad QS/rS in V1, monophasic R in V6. STEMI criteria unreliable with LBBB — use Sgarbossa criteria.",
+        criteria: ["QRS ≥ 120 ms", "Broad monophasic R in I, V5, V6", "QS or rS in V1", "⚠️ LBBB makes standard STEMI criteria unreliable", "⚠️ Apply Sgarbossa or modified Sgarbossa criteria"] };
+    } else {
+      bbb = { type: "Wide QRS — Nonspecific IVCD", color: "yellow",
+        detail: "QRS ≥ 120 ms but doesn't meet classic RBBB or LBBB morphology. Consider hyperkalemia, drug toxicity, or ventricular rhythm.",
+        criteria: ["QRS ≥ 120 ms", "Does not meet RBBB or LBBB pattern", "Consider: hyperkalemia, Na-channel blocker toxicity, ventricular origin"] };
+    }
+    if (bbb) {
+      let cList = bbb.criteria.map(c => c.startsWith("⚠️") ? `<li class="warn">${c}</li>` : `<li>${c}</li>`).join("");
+      html += resultCard("Bundle Branch Block", "🔀", bbb.color,
+        badge(bbb.type, bbb.color, true) +
+        `<div class="result-detail">${bbb.detail}</div>` +
+        `<ul class="result-criteria">${cList}</ul>`
+      );
+    }
+  }
+
+  // ST Analysis
+  const elevSet = state.ste;
+  const depSet = state.std;
+  const findings = [];
+
+  for (const [territory, info] of Object.entries(TERRITORY)) {
+    const matched = info.leads.filter(l => elevSet.has(l));
+    if (matched.length > 0) {
+      const recipMatch = info.recip.filter(l => depSet.has(l));
+      findings.push({ territory, type:"elevation", leads:matched, artery:info.artery, recip:recipMatch, hasRecip:recipMatch.length>0 });
+    }
+  }
+
+  // Posterior check
+  const postRecip = ["V1","V2","V3"].filter(l => depSet.has(l));
+  if (postRecip.length >= 2 && !elevSet.has("V1") && !elevSet.has("V2")) {
+    findings.push({ territory:"Posterior (suspected)", type:"reciprocal depression", leads:postRecip,
+      artery:"Posterior Descending (from RCA or LCx)", recip:[], hasRecip:false,
+      note:"Look for ST depression + tall R waves in V1-V3 as reciprocal changes. Obtain V7-V9." });
+  }
+
+  // Extensive anterior
+  const extMatch = EXT_ANT.filter(l => elevSet.has(l));
+  if (extMatch.length >= 4) {
+    findings.push({ territory:"Extensive Anterior (LAD Proximal / Left Main)", type:"elevation", leads:extMatch,
+      artery:"Proximal LAD or Left Main — HIGH RISK",
+      recip:["II","III","aVF"].filter(l => depSet.has(l)),
+      hasRecip:["II","III","aVF"].some(l => depSet.has(l)), critical:true });
+  }
+
+  if (findings.length > 0) {
+    const isCrit = findings.some(f => f.critical);
+    let stHtml = findings.map(f => {
+      let inner = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        ${badge(f.territory, f.critical?"red":"yellow", true)}
+        ${badge(f.type.toUpperCase(), f.type==="elevation"?"red":"blue", false)}
+      </div>`;
+      inner += `<div class="st-row"><span class="st-label">Leads: </span><span class="st-val">${f.leads.join(", ")}</span></div>`;
+      inner += `<div class="st-row"><span class="st-label">Culprit Artery: </span><span class="st-artery">${f.artery}</span></div>`;
+      if (f.hasRecip) {
+        inner += `<div class="st-row"><span class="st-label">Reciprocal Changes In: </span><span class="st-recip">${f.recip.join(", ")}</span><span class="st-recip-note">✓ increases specificity for STEMI</span></div>`;
+      }
+      if (f.note) inner += `<div class="st-note">${f.note}</div>`;
+      return `<div class="st-finding${f.critical?' critical':''}">${inner}</div>`;
+    }).join("");
+    html += resultCard("ST Segment Analysis — Territory &amp; Artery Mapping", "🫀", isCrit?"red":"yellow", stHtml);
+  }
+
+  // Isolated depression
+  if (depSet.size > 0 && elevSet.size === 0) {
+    let isoHtml = `<div class="result-detail">ST depression in <strong style="color:var(--text-primary);font-family:var(--mono)">${[...depSet].join(", ")}</strong> without ST elevation.</div>`;
+    isoHtml += `<div class="result-detail">Diffuse ST depression can indicate subendocardial ischemia (NSTEMI), LV strain, digoxin effect, hypokalemia, or reciprocal changes to an injury not fully captured (e.g., posterior STEMI with V1-V3 depression).</div>`;
+    if (["V1","V2","V3"].some(l => depSet.has(l))) {
+      isoHtml += `<div class="posterior-warn">⚠️ ST depression in V1-V3 — consider posterior STEMI. Obtain posterior leads (V7-V9) if clinically suspicious.</div>`;
+    }
+    html += resultCard("ST Depression (No Elevation)", "📉", "blue", isoHtml);
+  }
+
+  // Reference Map
+  const refData = [
+    { t:"Septal", l:"V1, V2", a:"LAD" },
+    { t:"Anterior", l:"V3, V4", a:"LAD" },
+    { t:"Lateral", l:"I, aVL, V5, V6", a:"LCx" },
+    { t:"Inferior", l:"II, III, aVF", a:"RCA (or LCx)" },
+    { t:"RV", l:"V1 (V3R, V4R)", a:"Proximal RCA" },
+    { t:"Posterior", l:"V7, V8, V9", a:"PDA (RCA or LCx)" },
+  ];
+  html += `<div class="ref-map"><h3>📖 Quick Reference — Coronary Territory Map</h3><div class="ref-grid">`;
+  refData.forEach(r => {
+    html += `<div class="ref-item"><div class="ref-territory">${r.t}</div><div class="ref-leads">${r.l}</div><div class="ref-artery">${r.a}</div></div>`;
+  });
+  html += `</div></div>`;
+
+  document.getElementById("results").innerHTML = html;
+}
+
+function clearAll() {
+  ["hr","rr","pr","qrs","qt"].forEach(id => { document.getElementById(id).value = ""; state[id] = ""; });
+  state.ste.clear(); state.std.clear();
+  state.leadI = ""; state.avf = ""; state.v1 = ""; state.v6 = "";
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+  document.getElementById("hr-calc").textContent = "";
+  document.getElementById("rr-calc").textContent = "";
+  render();
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>

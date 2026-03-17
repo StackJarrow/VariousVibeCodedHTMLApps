@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroAssess — Clinical Neuro Assessment Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0B0F1A;
+    --surface: #131825;
+    --surface2: #1A2035;
+    --surface3: #212840;
+    --border: #2A3150;
+    --text: #E8ECF4;
+    --text-dim: #8892B0;
+    --text-muted: #5A6480;
+    --accent-cranial: #38BDF8;
+    --accent-ciwa: #F59E0B;
+    --accent-nihss: #EF4444;
+    --accent-derma: #22C55E;
+    --accent-cranial-bg: rgba(56,189,248,0.08);
+    --accent-ciwa-bg: rgba(245,158,11,0.08);
+    --accent-nihss-bg: rgba(239,68,68,0.08);
+    --accent-derma-bg: rgba(34,197,94,0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+font-family: var(–sans);
+background: var(–bg);
+color: var(–text);
+min-height: 100vh;
+-webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(–border); border-radius: 3px; }
+
+/* ── Layout ── */
+.app { max-width: 960px; margin: 0 auto; padding: 20px 16px 100px; }
+
+/* ── Header ── */
+.header {
+text-align: center;
+padding: 32px 0 24px;
+position: relative;
+}
+.header::after {
+content: ‘’;
+position: absolute;
+bottom: 0;
+left: 50%;
+transform: translateX(-50%);
+width: 60px;
+height: 2px;
+background: linear-gradient(90deg, transparent, var(–text-muted), transparent);
+}
+.logo {
+font-family: var(–mono);
+font-size: 11px;
+letter-spacing: 4px;
+text-transform: uppercase;
+color: var(–text-muted);
+margin-bottom: 8px;
+}
+.header h1 {
+font-size: 28px;
+font-weight: 700;
+letter-spacing: -0.5px;
+background: linear-gradient(135deg, #E8ECF4 0%, #8892B0 100%);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+}
+
+/* ── Nav Tabs ── */
+.nav {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 8px;
+margin: 28px 0;
+position: sticky;
+top: 0;
+z-index: 100;
+background: var(–bg);
+padding: 8px 0 12px;
+}
+.nav-btn {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 14px 8px 12px;
+cursor: pointer;
+transition: all 0.2s;
+text-align: center;
+position: relative;
+overflow: hidden;
+}
+.nav-btn::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background: var(–btn-accent);
+opacity: 0;
+transition: opacity 0.2s;
+}
+.nav-btn:hover { border-color: var(–btn-accent); transform: translateY(-1px); }
+.nav-btn.active {
+background: var(–btn-bg);
+border-color: var(–btn-accent);
+box-shadow: 0 0 20px var(–btn-bg);
+}
+.nav-btn.active::before { opacity: 1; }
+.nav-btn .icon { font-size: 20px; margin-bottom: 4px; }
+.nav-btn .label {
+font-size: 11px;
+font-weight: 600;
+letter-spacing: 0.5px;
+text-transform: uppercase;
+color: var(–text-dim);
+transition: color 0.2s;
+}
+.nav-btn.active .label { color: var(–btn-accent); }
+
+/* ── Cards ── */
+.card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+margin-bottom: 10px;
+overflow: hidden;
+transition: border-color 0.2s;
+}
+.card:hover { border-color: var(–surface3); }
+.card-header {
+padding: 16px 18px;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: space-between;
+user-select: none;
+}
+.card-header:hover { background: var(–surface2); }
+.card-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+.card-num {
+font-family: var(–mono);
+font-size: 11px;
+font-weight: 500;
+color: var(–section-accent);
+background: var(–section-bg);
+padding: 4px 8px;
+border-radius: 6px;
+min-width: 36px;
+text-align: center;
+}
+.card-title {
+font-weight: 600;
+font-size: 15px;
+line-height: 1.3;
+}
+.card-subtitle {
+font-size: 12px;
+color: var(–text-dim);
+margin-top: 1px;
+}
+.card-status {
+font-family: var(–mono);
+font-size: 12px;
+padding: 3px 10px;
+border-radius: 20px;
+margin-left: 12px;
+white-space: nowrap;
+}
+.card-status.pending { color: var(–text-muted); background: var(–surface2); }
+.card-status.done { color: var(–section-accent); background: var(–section-bg); }
+.chevron {
+color: var(–text-muted);
+transition: transform 0.25s;
+font-size: 18px;
+margin-left: 8px;
+}
+.chevron.open { transform: rotate(180deg); }
+.card-body {
+max-height: 0;
+overflow: hidden;
+transition: max-height 0.35s ease;
+}
+.card-body.open { max-height: 2000px; }
+.card-content {
+padding: 0 18px 18px;
+border-top: 1px solid var(–border);
+}
+
+/* ── Test Info ── */
+.test-info {
+background: var(–surface2);
+border-radius: var(–radius-sm);
+padding: 12px 14px;
+margin: 14px 0;
+font-size: 13px;
+line-height: 1.6;
+color: var(–text-dim);
+border-left: 3px solid var(–section-accent);
+}
+.test-info strong { color: var(–text); font-weight: 500; }
+
+/* ── Option Buttons ── */
+.options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.opt-btn {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 8px 14px;
+color: var(–text-dim);
+font-family: var(–sans);
+font-size: 13px;
+cursor: pointer;
+transition: all 0.15s;
+}
+.opt-btn:hover {
+border-color: var(–section-accent);
+color: var(–text);
+background: var(–section-bg);
+}
+.opt-btn.selected {
+background: var(–section-accent);
+color: var(–bg);
+border-color: var(–section-accent);
+font-weight: 600;
+}
+
+/* ── Score Display ── */
+.score-bar {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 20px;
+margin-bottom: 16px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+.score-label { font-size: 13px; color: var(–text-dim); font-weight: 500; }
+.score-value {
+font-family: var(–mono);
+font-size: 32px;
+font-weight: 700;
+color: var(–section-accent);
+}
+.score-max { font-size: 16px; color: var(–text-muted); font-weight: 400; }
+.score-interp {
+font-size: 13px;
+color: var(–text-dim);
+margin-top: 4px;
+padding: 6px 12px;
+background: var(–section-bg);
+border-radius: 6px;
+display: inline-block;
+}
+
+/* ── Severity Indicator ── */
+.severity-bar-track {
+width: 100%;
+height: 6px;
+background: var(–surface3);
+border-radius: 3px;
+margin: 12px 0 6px;
+overflow: hidden;
+}
+.severity-bar-fill {
+height: 100%;
+border-radius: 3px;
+transition: width 0.5s ease, background 0.3s;
+}
+
+/* ── Dermatome Body Map ── */
+.derma-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
+margin-top: 12px;
+}
+.derma-level {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: var(–radius-sm);
+padding: 10px 14px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+cursor: pointer;
+transition: all 0.15s;
+}
+.derma-level:hover { border-color: var(–accent-derma); }
+.derma-level.intact { border-color: var(–accent-derma); background: rgba(34,197,94,0.06); }
+.derma-level.impaired { border-color: var(–accent-ciwa); background: rgba(245,158,11,0.06); }
+.derma-level.absent { border-color: var(–accent-nihss); background: rgba(239,68,68,0.06); }
+.derma-label {
+font-family: var(–mono);
+font-size: 13px;
+font-weight: 500;
+}
+.derma-status {
+font-size: 11px;
+font-weight: 600;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+.derma-level.intact .derma-status { color: var(–accent-derma); }
+.derma-level.impaired .derma-status { color: var(–accent-ciwa); }
+.derma-level.absent .derma-status { color: var(–accent-nihss); }
+
+/* ── Summary / Export ── */
+.summary-box {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 20px;
+margin-top: 20px;
+}
+.summary-box h3 {
+font-size: 14px;
+font-weight: 600;
+margin-bottom: 12px;
+color: var(–text);
+}
+.summary-text {
+font-family: var(–mono);
+font-size: 12px;
+line-height: 1.8;
+color: var(–text-dim);
+background: var(–surface2);
+border-radius: var(–radius-sm);
+padding: 14px;
+white-space: pre-wrap;
+max-height: 300px;
+overflow-y: auto;
+}
+.btn-row { display: flex; gap: 8px; margin-top: 12px; }
+.action-btn {
+background: var(–section-accent);
+color: var(–bg);
+border: none;
+border-radius: var(–radius-sm);
+padding: 10px 20px;
+font-family: var(–sans);
+font-size: 13px;
+font-weight: 600;
+cursor: pointer;
+transition: opacity 0.2s, transform 0.1s;
+}
+.action-btn:hover { opacity: 0.85; }
+.action-btn:active { transform: scale(0.97); }
+.action-btn.secondary {
+background: var(–surface2);
+color: var(–text-dim);
+border: 1px solid var(–border);
+}
+
+/* ── Section Header ── */
+.section-header {
+display: flex;
+align-items: center;
+gap: 10px;
+margin-bottom: 16px;
+}
+.section-header h2 {
+font-size: 20px;
+font-weight: 700;
+letter-spacing: -0.3px;
+}
+.section-badge {
+font-family: var(–mono);
+font-size: 11px;
+color: var(–section-accent);
+background: var(–section-bg);
+padding: 4px 10px;
+border-radius: 20px;
+}
+
+/* ── Region group ── */
+.region-group {
+margin-bottom: 16px;
+}
+.region-title {
+font-size: 13px;
+font-weight: 600;
+color: var(–text-dim);
+text-transform: uppercase;
+letter-spacing: 1px;
+margin-bottom: 8px;
+padding-left: 4px;
+}
+
+/* ── Toast ── */
+.toast {
+position: fixed;
+bottom: 24px;
+left: 50%;
+transform: translateX(-50%) translateY(80px);
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: var(–radius);
+padding: 12px 24px;
+font-size: 13px;
+font-weight: 500;
+color: var(–text);
+z-index: 1000;
+opacity: 0;
+transition: all 0.3s ease;
+pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+.nav { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.nav-btn { padding: 10px 4px 8px; }
+.nav-btn .icon { font-size: 18px; }
+.nav-btn .label { font-size: 9px; }
+.derma-grid { grid-template-columns: 1fr; }
+.score-bar { flex-direction: column; text-align: center; gap: 8px; }
+}
+
+/* ── Animations ── */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.3s ease forwards; }
+</style>
+
+</head>
+<body>
+
+<div class="app" id="app"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════
+
+const CRANIAL_NERVES = [
+  { num:"I", name:"Olfactory", fn:"Smell",
+    test:"Have patient identify familiar scents (coffee, vanilla, mint) with eyes closed, one nostril at a time. Avoid noxious stimuli (ammonia) as these stimulate CN V.",
+    opts:["Normal","Anosmia","Hyposmia","Not tested"]},
+  { num:"II", name:"Optic", fn:"Visual acuity & fields",
+    test:"Snellen chart for acuity. Confrontation visual fields — test each quadrant bilaterally. Check pupillary light reflex (afferent limb). Fundoscopic for papilledema.",
+    opts:["Normal","Decreased acuity","Field cut","Afferent pupil defect","Not tested"]},
+  { num:"III", name:"Oculomotor", fn:"EOM (up/down/medial), pupil constriction, lid elevation",
+    test:"Pupil size, shape, reactivity (efferent limb). H-pattern EOM testing. Check for ptosis. PERRLA documentation.",
+    opts:["Normal","Ptosis","Blown pupil","EOM deficit","Not tested"]},
+  { num:"IV", name:"Trochlear", fn:"Downward/inward gaze (superior oblique)",
+    test:"Ask patient to look down and inward. Note head tilt compensation. Often subtle — isolated CN IV palsy causes vertical diplopia on downgaze.",
+    opts:["Normal","Deficit","Head tilt","Not tested"]},
+  { num:"V", name:"Trigeminal", fn:"Facial sensation (V1/V2/V3), mastication",
+    test:"Light touch & pinprick in all 3 divisions (forehead, cheek, jaw). Corneal reflex (afferent). Jaw clench strength. Jaw jerk reflex.",
+    opts:["Normal","Decreased V1","Decreased V2","Decreased V3","Absent corneal","Not tested"]},
+  { num:"VI", name:"Abducens", fn:"Lateral gaze (lateral rectus)",
+    test:"Have patient look laterally. Deficit = inability to abduct the eye. Most commonly affected CN due to long intracranial course.",
+    opts:["Normal","Deficit","Not tested"]},
+  { num:"VII", name:"Facial", fn:"Facial expression, taste (anterior 2/3)",
+    test:"Raise eyebrows, close eyes tightly (resist opening), smile, puff cheeks. UMN = forehead sparing. LMN = entire side affected.",
+    opts:["Normal","UMN pattern","LMN pattern","Not tested"]},
+  { num:"VIII", name:"Vestibulocochlear", fn:"Hearing & balance",
+    test:"Whisper test or finger rub each ear. Weber test (midline fork) and Rinne test (air vs bone conduction). Assess nystagmus, gait stability.",
+    opts:["Normal","Hearing loss R","Hearing loss L","Nystagmus","Not tested"]},
+  { num:"IX", name:"Glossopharyngeal", fn:"Taste (posterior 1/3), pharyngeal sensation",
+    test:"Tested with CN X — gag reflex (afferent limb is CN IX). Taste posterior tongue if indicated. Assess swallow.",
+    opts:["Normal","Absent gag","Dysphagia","Not tested"]},
+  { num:"X", name:"Vagus", fn:"Palate elevation, phonation, parasympathetics",
+    test:"Say 'ahh' — observe uvula deviation (deviates AWAY from lesion). Assess voice quality (hoarseness). Efferent limb of gag reflex.",
+    opts:["Normal","Uvula deviation","Hoarseness","Absent gag","Not tested"]},
+  { num:"XI", name:"Accessory", fn:"SCM & trapezius",
+    test:"Shrug shoulders against resistance (trapezius). Turn head against resistance (contralateral SCM). Assess symmetry.",
+    opts:["Normal","Weak SCM","Weak trapezius","Not tested"]},
+  { num:"XII", name:"Hypoglossal", fn:"Tongue movement",
+    test:"Protrude tongue — deviates TOWARD lesion. Assess for atrophy, fasciculations. Test lateral tongue push against cheek.",
+    opts:["Normal","Deviation R","Deviation L","Atrophy/fascs","Not tested"]}
+];
+
+const CIWA_ITEMS = [
+  { id:"nausea", name:"Nausea / Vomiting",
+    desc:"Ask: 'Do you feel sick to your stomach? Have you vomited?'",
+    scale:[
+      {val:0, label:"0 — None"},
+      {val:1, label:"1 — Mild nausea, no vomiting"},
+      {val:4, label:"4 — Intermittent nausea w/ dry heaves"},
+      {val:7, label:"7 — Constant nausea, frequent dry heaves/vomiting"}
+    ]},
+  { id:"tremor", name:"Tremor",
+    desc:"Arms extended, fingers spread apart. Observe.",
+    scale:[
+      {val:0, label:"0 — No tremor"},
+      {val:1, label:"1 — Not visible, felt fingertip to fingertip"},
+      {val:4, label:"4 — Moderate, with arms extended"},
+      {val:7, label:"7 — Severe, even with arms not extended"}
+    ]},
+  { id:"sweat", name:"Paroxysmal Sweats",
+    desc:"Observation of sweating.",
+    scale:[
+      {val:0, label:"0 — No sweat visible"},
+      {val:1, label:"1 — Barely perceptible, palms moist"},
+      {val:4, label:"4 — Beads of sweat obvious on forehead"},
+      {val:7, label:"7 — Drenching sweats"}
+    ]},
+  { id:"anxiety", name:"Anxiety",
+    desc:"Ask: 'Do you feel nervous?' Observe behavior.",
+    scale:[
+      {val:0, label:"0 — No anxiety, at ease"},
+      {val:1, label:"1 — Mildly anxious"},
+      {val:4, label:"4 — Moderately anxious / guarded"},
+      {val:7, label:"7 — Equivalent to acute panic states"}
+    ]},
+  { id:"agitation", name:"Agitation",
+    desc:"Observation of general activity.",
+    scale:[
+      {val:0, label:"0 — Normal activity"},
+      {val:1, label:"1 — Somewhat more than normal"},
+      {val:4, label:"4 — Moderately fidgety/restless"},
+      {val:7, label:"7 — Paces or constantly thrashes"}
+    ]},
+  { id:"tactile", name:"Tactile Disturbances",
+    desc:"Ask: 'Do you have any itching, pins & needles, burning, or numbness, or do you feel bugs crawling on or under your skin?'",
+    scale:[
+      {val:0, label:"0 — None"},
+      {val:1, label:"1 — Mild itching/pins & needles/burning/numbness"},
+      {val:2, label:"2 — Mild itching/pins & needles/burning/numbness"},
+      {val:3, label:"3 — Moderate itching/pins & needles/burning/numbness"},
+      {val:4, label:"4 — Moderate hallucinations"},
+      {val:5, label:"5 — Severe hallucinations"},
+      {val:6, label:"6 — Extremely severe hallucinations"},
+      {val:7, label:"7 — Continuous hallucinations"}
+    ]},
+  { id:"auditory", name:"Auditory Disturbances",
+    desc:"Ask: 'Are you more aware of sounds around you? Are they harsh? Frightening? Do you hear anything disturbing that you know is not there?'",
+    scale:[
+      {val:0, label:"0 — Not present"},
+      {val:1, label:"1 — Mildly harsh/ability to frighten"},
+      {val:2, label:"2 — Mildly harsh/ability to frighten"},
+      {val:3, label:"3 — Moderately harsh/ability to frighten"},
+      {val:4, label:"4 — Moderate hallucinations"},
+      {val:5, label:"5 — Severe hallucinations"},
+      {val:6, label:"6 — Extremely severe hallucinations"},
+      {val:7, label:"7 — Continuous hallucinations"}
+    ]},
+  { id:"visual", name:"Visual Disturbances",
+    desc:"Ask: 'Does the light appear to be too bright? Is its color different? Does it hurt your eyes? Are you seeing anything that is disturbing to you that you know is not there?'",
+    scale:[
+      {val:0, label:"0 — Not present"},
+      {val:1, label:"1 — Very mildly sensitive"},
+      {val:2, label:"2 — Mildly sensitive"},
+      {val:3, label:"3 — Moderately sensitive"},
+      {val:4, label:"4 — Moderate hallucinations"},
+      {val:5, label:"5 — Severe hallucinations"},
+      {val:6, label:"6 — Extremely severe hallucinations"},
+      {val:7, label:"7 — Continuous hallucinations"}
+    ]},
+  { id:"headache", name:"Headache / Fullness in Head",
+    desc:"Ask: 'Does your head feel different? Does it feel like there is a band around your head?' Do not rate dizziness or lightheadedness.",
+    scale:[
+      {val:0, label:"0 — Not present"},
+      {val:1, label:"1 — Very mild"},
+      {val:2, label:"2 — Mild headache"},
+      {val:3, label:"3 — Moderate headache"},
+      {val:4, label:"4 — Moderately severe"},
+      {val:5, label:"5 — Severe"},
+      {val:6, label:"6 — Very severe"},
+      {val:7, label:"7 — Extremely severe"}
+    ]},
+  { id:"orient", name:"Orientation / Clouding of Sensorium",
+    desc:"Ask: 'What day is this? Where are you? Who am I?'",
+    scale:[
+      {val:0, label:"0 — Oriented, can do serial additions"},
+      {val:1, label:"1 — Cannot do serial additions / uncertain about date"},
+      {val:2, label:"2 — Date uncertain by more than 2 days"},
+      {val:3, label:"3 — Disoriented to date by more than 2 days"},
+      {val:4, label:"4 — Disoriented to place and/or person"}
+    ]}
+];
+
+const NIHSS_ITEMS = [
+  { id:"1a", name:"1a. Level of Consciousness",
+    scale:[{val:0,label:"0 — Alert"},{val:1,label:"1 — Not alert, arousable by minor stimulation"},{val:2,label:"2 — Not alert, requires repeated stimulation"},{val:3,label:"3 — Unresponsive / reflexive responses only"}]},
+  { id:"1b", name:"1b. LOC Questions (month, age)",
+    scale:[{val:0,label:"0 — Both correct"},{val:1,label:"1 — One correct"},{val:2,label:"2 — Neither correct"}]},
+  { id:"1c", name:"1c. LOC Commands (open/close eyes, grip/release)",
+    scale:[{val:0,label:"0 — Both correct"},{val:1,label:"1 — One correct"},{val:2,label:"2 — Neither correct"}]},
+  { id:"2", name:"2. Best Gaze (horizontal EOM)",
+    scale:[{val:0,label:"0 — Normal"},{val:1,label:"1 — Partial gaze palsy"},{val:2,label:"2 — Forced deviation / total gaze paresis"}]},
+  { id:"3", name:"3. Visual Fields",
+    scale:[{val:0,label:"0 — No visual loss"},{val:1,label:"1 — Partial hemianopia"},{val:2,label:"2 — Complete hemianopia"},{val:3,label:"3 — Bilateral hemianopia / blind"}]},
+  { id:"4", name:"4. Facial Palsy",
+    scale:[{val:0,label:"0 — Normal"},{val:1,label:"1 — Minor paralysis (flattened nasolabial fold)"},{val:2,label:"2 — Partial (lower face)"},{val:3,label:"3 — Complete (upper & lower)"}]},
+  { id:"5a", name:"5a. Left Arm Motor (drift test 10s)",
+    scale:[{val:0,label:"0 — No drift (holds 10s)"},{val:1,label:"1 — Drift before 10s, doesn't hit bed"},{val:2,label:"2 — Some effort against gravity, can't sustain"},{val:3,label:"3 — No effort against gravity"},{val:4,label:"4 — No movement"}]},
+  { id:"5b", name:"5b. Right Arm Motor (drift test 10s)",
+    scale:[{val:0,label:"0 — No drift (holds 10s)"},{val:1,label:"1 — Drift before 10s, doesn't hit bed"},{val:2,label:"2 — Some effort against gravity, can't sustain"},{val:3,label:"3 — No effort against gravity"},{val:4,label:"4 — No movement"}]},
+  { id:"6a", name:"6a. Left Leg Motor (drift test 5s)",
+    scale:[{val:0,label:"0 — No drift (holds 5s)"},{val:1,label:"1 — Drift before 5s, doesn't hit bed"},{val:2,label:"2 — Some effort against gravity"},{val:3,label:"3 — No effort against gravity"},{val:4,label:"4 — No movement"}]},
+  { id:"6b", name:"6b. Right Leg Motor (drift test 5s)",
+    scale:[{val:0,label:"0 — No drift (holds 5s)"},{val:1,label:"1 — Drift before 5s, doesn't hit bed"},{val:2,label:"2 — Some effort against gravity"},{val:3,label:"3 — No effort against gravity"},{val:4,label:"4 — No movement"}]},
+  { id:"7", name:"7. Limb Ataxia (FNF, heel-shin)",
+    scale:[{val:0,label:"0 — Absent"},{val:1,label:"1 — Present in one limb"},{val:2,label:"2 — Present in two limbs"}]},
+  { id:"8", name:"8. Sensory (pinprick)",
+    scale:[{val:0,label:"0 — Normal"},{val:1,label:"1 — Mild to moderate loss"},{val:2,label:"2 — Severe or total loss"}]},
+  { id:"9", name:"9. Best Language",
+    scale:[{val:0,label:"0 — No aphasia"},{val:1,label:"1 — Mild to moderate aphasia"},{val:2,label:"2 — Severe aphasia"},{val:3,label:"3 — Mute / global aphasia"}]},
+  { id:"10", name:"10. Dysarthria",
+    scale:[{val:0,label:"0 — Normal"},{val:1,label:"1 — Mild to moderate slurring"},{val:2,label:"2 — Unintelligible / mute"}]},
+  { id:"11", name:"11. Extinction / Inattention",
+    scale:[{val:0,label:"0 — No abnormality"},{val:1,label:"1 — Inattention in one modality"},{val:2,label:"2 — Profound inattention / extinction >1 modality"}]}
+];
+
+const DERMATOMES = {
+  "Cervical":[
+    {level:"C2",area:"Occiput / posterior scalp"},
+    {level:"C3",area:"Neck, posterior"},
+    {level:"C4",area:"Shoulder top / upper deltoid"},
+    {level:"C5",area:"Lateral arm (deltoid region)"},
+    {level:"C6",area:"Lateral forearm, thumb, index finger"},
+    {level:"C7",area:"Middle finger, posterior forearm"},
+    {level:"C8",area:"Ring & little finger, medial forearm"}
+  ],
+  "Thoracic":[
+    {level:"T1",area:"Medial forearm"},
+    {level:"T2",area:"Axilla / medial arm"},
+    {level:"T4",area:"Nipple line"},
+    {level:"T6",area:"Xiphoid process"},
+    {level:"T10",area:"Umbilicus"},
+    {level:"T12",area:"Inguinal / suprapubic"}
+  ],
+  "Lumbar":[
+    {level:"L1",area:"Inguinal region"},
+    {level:"L2",area:"Anterior thigh, upper"},
+    {level:"L3",area:"Anterior thigh to knee, medial"},
+    {level:"L4",area:"Medial leg, medial malleolus"},
+    {level:"L5",area:"Lateral leg, dorsum of foot, great toe"}
+  ],
+  "Sacral":[
+    {level:"S1",area:"Lateral foot, sole, little toe"},
+    {level:"S2",area:"Posterior thigh"},
+    {level:"S3",area:"Medial buttock"},
+    {level:"S4-S5",area:"Perianal area"}
+  ]
+};
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+
+let state = {
+  tab: 'cranial',
+  cranial: {},       // { "I": "Normal", ... }
+  cranialOpen: {},   // { "I": true, ... }
+  ciwa: {},          // { "nausea": 4, ... }
+  ciwaOpen: {},
+  nihss: {},         // { "1a": 2, ... }
+  nihssOpen: {},
+  derma: {},         // { "C5": "intact", ... }
+};
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function getCIWAInterpretation(score) {
+  if (score <= 8) return { text: "Mild withdrawal — may not require medication", color: "#22C55E" };
+  if (score <= 15) return { text: "Moderate withdrawal — consider medical management", color: "#F59E0B" };
+  if (score <= 20) return { text: "Severe withdrawal — medical management indicated", color: "#F97316" };
+  return { text: "Very severe withdrawal — ICU-level care may be needed", color: "#EF4444" };
+}
+
+function getNIHSSInterpretation(score) {
+  if (score === 0) return { text: "No stroke symptoms", color: "#22C55E" };
+  if (score <= 4) return { text: "Minor stroke", color: "#22C55E" };
+  if (score <= 15) return { text: "Moderate stroke", color: "#F59E0B" };
+  if (score <= 20) return { text: "Moderate to severe stroke", color: "#F97316" };
+  if (score <= 25) return { text: "Severe stroke", color: "#EF4444" };
+  return { text: "Very severe stroke", color: "#EF4444" };
+}
+
+function dermaNextState(current) {
+  if (!current) return 'intact';
+  if (current === 'intact') return 'impaired';
+  if (current === 'impaired') return 'absent';
+  return undefined; // cycles back to untested
+}
+
+function getTimestamp() {
+  return new Date().toLocaleString('en-US', { dateStyle:'short', timeStyle:'short' });
+}
+
+// ═══════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = renderHeader() + renderNav() + renderContent();
+  attachEvents();
+}
+
+function renderHeader() {
+  return `
+    <div class="header">
+      <div class="logo">NeuroAssess</div>
+      <h1>Neurological Assessment</h1>
+    </div>`;
+}
+
+function renderNav() {
+  const tabs = [
+    { id:'cranial', icon:'🧠', label:'Cranial N.', accent:'var(--accent-cranial)', bg:'var(--accent-cranial-bg)' },
+    { id:'ciwa',    icon:'📋', label:'CIWA-Ar',   accent:'var(--accent-ciwa)',    bg:'var(--accent-ciwa-bg)' },
+    { id:'nihss',   icon:'⚡', label:'NIHSS',     accent:'var(--accent-nihss)',   bg:'var(--accent-nihss-bg)' },
+    { id:'derma',   icon:'🦴', label:'Dermatomes', accent:'var(--accent-derma)',   bg:'var(--accent-derma-bg)' }
+  ];
+  return `<div class="nav">${tabs.map(t => `
+    <div class="nav-btn ${state.tab===t.id?'active':''}" data-tab="${t.id}"
+         style="--btn-accent:${t.accent};--btn-bg:${t.bg}">
+      <div class="icon">${t.icon}</div>
+      <div class="label">${t.label}</div>
+    </div>`).join('')}</div>`;
+}
+
+function renderContent() {
+  const accents = {
+    cranial: { a:'var(--accent-cranial)', bg:'var(--accent-cranial-bg)' },
+    ciwa: { a:'var(--accent-ciwa)', bg:'var(--accent-ciwa-bg)' },
+    nihss: { a:'var(--accent-nihss)', bg:'var(--accent-nihss-bg)' },
+    derma: { a:'var(--accent-derma)', bg:'var(--accent-derma-bg)' }
+  };
+  const ac = accents[state.tab];
+  const style = `style="--section-accent:${ac.a};--section-bg:${ac.bg}"`;
+
+  switch(state.tab) {
+    case 'cranial': return `<div ${style} class="fade-in">${renderCranial()}</div>`;
+    case 'ciwa': return `<div ${style} class="fade-in">${renderCIWA()}</div>`;
+    case 'nihss': return `<div ${style} class="fade-in">${renderNIHSS()}</div>`;
+    case 'derma': return `<div ${style} class="fade-in">${renderDerma()}</div>`;
+  }
+}
+
+// ── Cranial Nerves ──
+function renderCranial() {
+  const answered = Object.keys(state.cranial).length;
+  let html = `
+    <div class="section-header">
+      <h2>Cranial Nerve Exam</h2>
+      <span class="section-badge">${answered}/12 assessed</span>
+    </div>`;
+
+  html += CRANIAL_NERVES.map(cn => {
+    const isOpen = state.cranialOpen[cn.num];
+    const val = state.cranial[cn.num];
+    return `
+    <div class="card">
+      <div class="card-header" data-toggle="cranial-${cn.num}">
+        <div class="card-left">
+          <span class="card-num">CN ${cn.num}</span>
+          <div>
+            <div class="card-title">${cn.name}</div>
+            <div class="card-subtitle">${cn.fn}</div>
+          </div>
+        </div>
+        ${val ? `<span class="card-status done">${val}</span>` : `<span class="card-status pending">—</span>`}
+        <span class="chevron ${isOpen?'open':''}">▾</span>
+      </div>
+      <div class="card-body ${isOpen?'open':''}">
+        <div class="card-content">
+          <div class="test-info"><strong>Assessment:</strong> ${cn.test}</div>
+          <div class="options">
+            ${cn.opts.map(o => `<button class="opt-btn ${val===o?'selected':''}" data-cranial="${cn.num}" data-val="${o}">${o}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (answered > 0) {
+    html += renderCranialSummary();
+  }
+  return html;
+}
+
+function renderCranialSummary() {
+  let lines = [`CRANIAL NERVE EXAM — ${getTimestamp()}\n`];
+  CRANIAL_NERVES.forEach(cn => {
+    const val = state.cranial[cn.num];
+    if (val) lines.push(`CN ${cn.num.padEnd(4)} ${cn.name.padEnd(18)} ${val}`);
+  });
+  const abnormals = CRANIAL_NERVES.filter(cn => state.cranial[cn.num] && state.cranial[cn.num] !== 'Normal' && state.cranial[cn.num] !== 'Not tested');
+  if (abnormals.length > 0) {
+    lines.push(`\nABNORMAL FINDINGS:`);
+    abnormals.forEach(cn => lines.push(`  CN ${cn.num} (${cn.name}): ${state.cranial[cn.num]}`));
+  } else if (Object.keys(state.cranial).length === 12) {
+    lines.push(`\nAll cranial nerves intact.`);
+  }
+  return `
+    <div class="summary-box">
+      <h3>Documentation</h3>
+      <div class="summary-text">${lines.join('\n')}</div>
+      <div class="btn-row">
+        <button class="action-btn" onclick="copyText(this)">Copy to Clipboard</button>
+        <button class="action-btn secondary" onclick="clearSection('cranial')">Reset</button>
+      </div>
+    </div>`;
+}
+
+// ── CIWA-Ar ──
+function renderCIWA() {
+  const score = Object.values(state.ciwa).reduce((a,b)=>a+b, 0);
+  const answered = Object.keys(state.ciwa).length;
+  const interp = getCIWAInterpretation(score);
+  const pct = Math.min(100, (score / 67) * 100);
+
+  let html = `
+    <div class="section-header">
+      <h2>CIWA-Ar Protocol</h2>
+      <span class="section-badge">${answered}/10 scored</span>
+    </div>
+    <div class="score-bar">
+      <div>
+        <div class="score-label">Total CIWA-Ar Score</div>
+        <div class="score-value">${score}<span class="score-max"> / 67</span></div>
+        <div class="severity-bar-track"><div class="severity-bar-fill" style="width:${pct}%;background:${interp.color}"></div></div>
+      </div>
+      <div class="score-interp" style="color:${interp.color}">${interp.text}</div>
+    </div>`;
+
+  html += CIWA_ITEMS.map(item => {
+    const isOpen = state.ciwaOpen[item.id];
+    const val = state.ciwa[item.id];
+    return `
+    <div class="card">
+      <div class="card-header" data-toggle="ciwa-${item.id}">
+        <div class="card-left">
+          <div>
+            <div class="card-title">${item.name}</div>
+          </div>
+        </div>
+        ${val !== undefined ? `<span class="card-status done">${val}</span>` : `<span class="card-status pending">—</span>`}
+        <span class="chevron ${isOpen?'open':''}">▾</span>
+      </div>
+      <div class="card-body ${isOpen?'open':''}">
+        <div class="card-content">
+          <div class="test-info">${item.desc}</div>
+          <div class="options">
+            ${item.scale.map(s => `<button class="opt-btn ${val===s.val?'selected':''}" data-ciwa="${item.id}" data-val="${s.val}">${s.label}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (answered > 0) {
+    html += renderCIWASummary(score, interp);
+  }
+  return html;
+}
+
+function renderCIWASummary(score, interp) {
+  let lines = [`CIWA-Ar ASSESSMENT — ${getTimestamp()}\n`];
+  CIWA_ITEMS.forEach(item => {
+    const val = state.ciwa[item.id];
+    if (val !== undefined) lines.push(`${item.name.padEnd(40)} ${val}`);
+  });
+  lines.push(`\nTOTAL SCORE: ${score}/67`);
+  lines.push(`INTERPRETATION: ${interp.text}`);
+  return `
+    <div class="summary-box">
+      <h3>Documentation</h3>
+      <div class="summary-text">${lines.join('\n')}</div>
+      <div class="btn-row">
+        <button class="action-btn" onclick="copyText(this)">Copy to Clipboard</button>
+        <button class="action-btn secondary" onclick="clearSection('ciwa')">Reset</button>
+      </div>
+    </div>`;
+}
+
+// ── NIHSS ──
+function renderNIHSS() {
+  const score = Object.values(state.nihss).reduce((a,b)=>a+b, 0);
+  const answered = Object.keys(state.nihss).length;
+  const interp = getNIHSSInterpretation(score);
+  const pct = Math.min(100, (score / 42) * 100);
+
+  let html = `
+    <div class="section-header">
+      <h2>NIH Stroke Scale</h2>
+      <span class="section-badge">${answered}/15 scored</span>
+    </div>
+    <div class="score-bar">
+      <div>
+        <div class="score-label">Total NIHSS Score</div>
+        <div class="score-value">${score}<span class="score-max"> / 42</span></div>
+        <div class="severity-bar-track"><div class="severity-bar-fill" style="width:${pct}%;background:${interp.color}"></div></div>
+      </div>
+      <div class="score-interp" style="color:${interp.color}">${interp.text}</div>
+    </div>`;
+
+  html += NIHSS_ITEMS.map(item => {
+    const isOpen = state.nihssOpen[item.id];
+    const val = state.nihss[item.id];
+    return `
+    <div class="card">
+      <div class="card-header" data-toggle="nihss-${item.id}">
+        <div class="card-left">
+          <div>
+            <div class="card-title">${item.name}</div>
+          </div>
+        </div>
+        ${val !== undefined ? `<span class="card-status done">${val}</span>` : `<span class="card-status pending">—</span>`}
+        <span class="chevron ${isOpen?'open':''}">▾</span>
+      </div>
+      <div class="card-body ${isOpen?'open':''}">
+        <div class="card-content">
+          <div class="options">
+            ${item.scale.map(s => `<button class="opt-btn ${val===s.val?'selected':''}" data-nihss="${item.id}" data-val="${s.val}">${s.label}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (answered > 0) {
+    html += renderNIHSSSummary(score, interp);
+  }
+  return html;
+}
+
+function renderNIHSSSummary(score, interp) {
+  let lines = [`NIH STROKE SCALE — ${getTimestamp()}\n`];
+  NIHSS_ITEMS.forEach(item => {
+    const val = state.nihss[item.id];
+    if (val !== undefined) lines.push(`${item.name.padEnd(45)} ${val}`);
+  });
+  lines.push(`\nTOTAL SCORE: ${score}/42`);
+  lines.push(`SEVERITY: ${interp.text}`);
+  if (score >= 6) lines.push(`\n⚠ Consider tPA eligibility if within window.`);
+  return `
+    <div class="summary-box">
+      <h3>Documentation</h3>
+      <div class="summary-text">${lines.join('\n')}</div>
+      <div class="btn-row">
+        <button class="action-btn" onclick="copyText(this)">Copy to Clipboard</button>
+        <button class="action-btn secondary" onclick="clearSection('nihss')">Reset</button>
+      </div>
+    </div>`;
+}
+
+// ── Dermatomes ──
+function renderDerma() {
+  const total = Object.values(DERMATOMES).flat().length;
+  const assessed = Object.keys(state.derma).length;
+
+  let html = `
+    <div class="section-header">
+      <h2>Dermatome Assessment</h2>
+      <span class="section-badge">${assessed}/${total} assessed</span>
+    </div>
+    <div class="test-info" style="margin-bottom:16px;border-left-color:var(--accent-derma)">
+      <strong>Instructions:</strong> Tap each level to cycle: <strong style="color:var(--accent-derma)">Intact</strong> → <strong style="color:var(--accent-ciwa)">Impaired</strong> → <strong style="color:var(--accent-nihss)">Absent</strong> → Clear. Test light touch and pinprick bilaterally, progressing from distal to proximal.
+    </div>`;
+
+  Object.entries(DERMATOMES).forEach(([region, levels]) => {
+    html += `
+    <div class="region-group">
+      <div class="region-title">${region}</div>
+      <div class="derma-grid">
+        ${levels.map(l => {
+          const s = state.derma[l.level] || '';
+          return `
+          <div class="derma-level ${s}" data-derma="${l.level}">
+            <div>
+              <div class="derma-label">${l.level}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${l.area}</div>
+            </div>
+            <div class="derma-status">${s || '—'}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+
+  if (assessed > 0) {
+    html += renderDermaSummary();
+  }
+  return html;
+}
+
+function renderDermaSummary() {
+  let lines = [`DERMATOME ASSESSMENT — ${getTimestamp()}\n`];
+  const impaired = [];
+  const absent = [];
+  Object.entries(DERMATOMES).forEach(([region, levels]) => {
+    let regionLines = [];
+    levels.forEach(l => {
+      const s = state.derma[l.level];
+      if (s) {
+        regionLines.push(`  ${l.level.padEnd(8)} ${l.area.padEnd(35)} ${s.toUpperCase()}`);
+        if (s === 'impaired') impaired.push(l.level);
+        if (s === 'absent') absent.push(l.level);
+      }
+    });
+    if (regionLines.length > 0) {
+      lines.push(`${region}:`);
+      lines.push(...regionLines);
+    }
+  });
+  if (impaired.length > 0) lines.push(`\nIMPAIRED: ${impaired.join(', ')}`);
+  if (absent.length > 0) lines.push(`ABSENT: ${absent.join(', ')}`);
+  if (impaired.length === 0 && absent.length === 0) lines.push(`\nAll tested dermatomes intact.`);
+
+  return `
+    <div class="summary-box">
+      <h3>Documentation</h3>
+      <div class="summary-text">${lines.join('\n')}</div>
+      <div class="btn-row">
+        <button class="action-btn" onclick="copyText(this)">Copy to Clipboard</button>
+        <button class="action-btn secondary" onclick="clearSection('derma')">Reset</button>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════
+
+function attachEvents() {
+  // Nav
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.tab = btn.dataset.tab;
+      render();
+    });
+  });
+
+  // Toggles
+  document.querySelectorAll('[data-toggle]').forEach(el => {
+    el.addEventListener('click', () => {
+      const [type, id] = el.dataset.toggle.split(/-(.+)/);
+      const key = type + 'Open';
+      state[key][id] = !state[key][id];
+      render();
+    });
+  });
+
+  // Cranial options
+  document.querySelectorAll('[data-cranial]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.cranial[btn.dataset.cranial] = btn.dataset.val;
+      render();
+    });
+  });
+
+  // CIWA options
+  document.querySelectorAll('[data-ciwa]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.ciwa[btn.dataset.ciwa] = parseInt(btn.dataset.val);
+      render();
+    });
+  });
+
+  // NIHSS options
+  document.querySelectorAll('[data-nihss]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.nihss[btn.dataset.nihss] = parseInt(btn.dataset.val);
+      render();
+    });
+  });
+
+  // Dermatome toggles
+  document.querySelectorAll('[data-derma]').forEach(el => {
+    el.addEventListener('click', () => {
+      const level = el.dataset.derma;
+      const next = dermaNextState(state.derma[level]);
+      if (next) {
+        state.derma[level] = next;
+      } else {
+        delete state.derma[level];
+      }
+      render();
+    });
+  });
+}
+
+// ═══════════════════════════════════════
+// GLOBAL ACTIONS
+// ═══════════════════════════════════════
+
+window.copyText = function(btn) {
+  const text = btn.closest('.summary-box').querySelector('.summary-text').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
+};
+
+window.clearSection = function(section) {
+  if (section === 'cranial') { state.cranial = {}; state.cranialOpen = {}; }
+  if (section === 'ciwa') { state.ciwa = {}; state.ciwaOpen = {}; }
+  if (section === 'nihss') { state.nihss = {}; state.nihssOpen = {}; }
+  if (section === 'derma') { state.derma = {}; }
+  render();
+  showToast('Assessment reset');
+};
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+
+render();
+</script>
+
+</body>
+</html>
