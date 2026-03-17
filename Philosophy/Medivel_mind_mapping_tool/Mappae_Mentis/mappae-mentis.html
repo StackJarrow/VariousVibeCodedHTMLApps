@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mappae Mentis — Medieval Philosophy of Mind</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0908; --bg-alt: #12110e; --panel: #1a1814; --panel-hover: #221f1a;
+    --border: #2a2620; --border-light: #3d3830;
+    --gold: #c9a84c; --gold-light: #e0c872; --gold-dim: #8a7232; --gold-faint: #3d3218;
+    --text: #d4cfc4; --text-muted: #8a8478; --text-dim: #5a5548;
+    --accent: #7b4a2a; --accent-light: #a0623a;
+    --blue: #4a6a8a; --blue-light: #6a8aaa;
+    --red: #8a3a2a; --green: #4a7a4a; --purple: #8a3a6a; --purple-light: #aa5a8a;
+  }
+
+  body {
+    background: var(--bg); color: var(--text); font-family: 'Crimson Text', Georgia, serif;
+    overflow: hidden; width: 100vw; height: 100vh; user-select: none;
+  }
+
+  /* ── Top Bar ── */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+    background: linear-gradient(180deg, rgba(10,9,8,0.95) 0%, rgba(10,9,8,0.7) 80%, transparent 100%);
+    padding: 12px 20px 24px; display: flex; align-items: flex-start; justify-content: space-between;
+  }
+  #topbar h1 {
+    font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 22px;
+    color: var(--gold); letter-spacing: 0.04em;
+  }
+  #topbar .subtitle {
+    font-size: 11px; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px;
+  }
+  .topbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+  /* ── Buttons ── */
+  .btn {
+    background: var(--panel); border: 1px solid rgba(138,132,120,0.2); border-radius: 4px;
+    color: var(--text-muted); padding: 6px 12px; font-size: 12px; cursor: pointer;
+    font-family: 'Crimson Text', serif; transition: all 0.2s; line-height: 1;
+  }
+  .btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .btn-gold { background: rgba(201,168,76,0.13); color: var(--gold); border-color: rgba(201,168,76,0.2); }
+  .btn-gold:hover { border-color: var(--gold); }
+  .btn-red { background: #2a1414; color: var(--red); border-color: rgba(138,58,42,0.2); }
+  .btn-red:hover { border-color: var(--red); }
+  .btn-blue { background: rgba(74,106,138,0.13); color: var(--blue-light); border-color: rgba(74,106,138,0.2); }
+  .btn-blue:hover { border-color: var(--blue-light); }
+
+  /* ── Search ── */
+  #search-input {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); padding: 6px 10px; font-size: 13px; width: 170px;
+    font-family: 'Crimson Text', serif; outline: none;
+  }
+  #search-input:focus { border-color: var(--gold); }
+  #search-results {
+    position: absolute; top: 100%; left: 0; right: 0; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 4px; margin-top: 4px;
+    max-height: 200px; overflow-y: auto; display: none; z-index: 100;
+  }
+  #search-results.active { display: block; }
+  .search-item {
+    padding: 6px 10px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border);
+  }
+  .search-item:hover { background: var(--panel-hover); }
+
+  /* ── Left Toolbar ── */
+  #toolbar {
+    position: fixed; left: 16px; top: 50%; transform: translateY(-50%); z-index: 20;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  #toolbar .toolbar-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-dim); text-align: center; margin-bottom: 4px;
+  }
+  .cat-btn {
+    background: transparent; border: 1px solid transparent; border-radius: 6px;
+    padding: 8px 12px; font-size: 11px; cursor: pointer;
+    font-family: 'Crimson Text', serif; text-transform: capitalize;
+    transition: all 0.2s; letter-spacing: 0.04em;
+  }
+  .cat-btn:hover { filter: brightness(1.3); }
+  .toolbar-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* ── Zoom controls ── */
+  #zoom-controls {
+    position: fixed; bottom: 16px; left: 16px; z-index: 20;
+    display: flex; gap: 4px; align-items: center;
+  }
+  #zoom-label { font-size: 11px; color: var(--text-dim); min-width: 40px; text-align: center; }
+  #node-count { position: fixed; bottom: 16px; right: 16px; z-index: 20; font-size: 11px; color: var(--text-dim); }
+
+  /* ── Canvas ── */
+  #canvas {
+    width: 100%; height: 100%; position: relative; cursor: grab;
+  }
+  #canvas.panning { cursor: grabbing; }
+  #canvas.connecting { cursor: crosshair; }
+  #canvas-inner { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  #grid-svg {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; opacity: 0.15;
+  }
+  #connections-svg {
+    position: absolute; top: 0; left: 0; width: 9999px; height: 9999px;
+    pointer-events: none; overflow: visible;
+  }
+
+  /* ── Nodes ── */
+  .node {
+    position: absolute; width: 110px; min-height: 48px;
+    background: var(--bg-alt); border: 1.5px solid transparent; border-radius: 8px;
+    padding: 10px 10px 8px; cursor: grab; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    z-index: 1;
+  }
+  .node:active { cursor: grabbing; }
+  .node:hover { z-index: 5; }
+  .node.selected { z-index: 10; }
+  .node .node-cat {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; opacity: 0.8;
+  }
+  .node .node-label {
+    font-size: 13px; font-weight: 600; font-family: 'Cormorant Garamond', serif;
+    line-height: 1.2; word-break: break-word;
+  }
+  .node .node-notes {
+    font-size: 10px; color: var(--text-muted); margin-top: 4px; line-height: 1.3;
+    max-height: 32px; overflow: hidden;
+  }
+
+  /* ── Connection labels ── */
+  .conn-label-group { pointer-events: all; cursor: pointer; }
+  .conn-label-group:hover text { fill: var(--text); }
+
+  /* ── Detail Panel ── */
+  #detail-panel {
+    position: fixed; right: 0; top: 0; bottom: 0; width: 290px; z-index: 25;
+    display: none; background: var(--bg); border-left: 1px solid var(--border);
+    overflow-y: auto; padding: 80px 16px 20px;
+  }
+  #detail-panel.active { display: block; }
+  .detail-cat {
+    display: inline-block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em;
+    padding: 3px 8px; border-radius: 3px; margin-bottom: 8px;
+  }
+  .detail-title {
+    font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 700;
+    color: var(--gold); margin: 4px 0 12px; line-height: 1.2;
+  }
+  .detail-section-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-dim); margin: 0 0 4px;
+  }
+  .detail-notes { font-size: 13px; line-height: 1.6; color: #b0a898; white-space: pre-wrap; margin-bottom: 16px; }
+  .detail-sources { font-size: 12px; line-height: 1.5; color: var(--text-muted); font-style: italic; white-space: pre-wrap; margin-bottom: 16px; }
+  .conn-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 8px; border-radius: 4px; margin-bottom: 4px;
+    background: var(--panel); border: 1px solid var(--border);
+  }
+  .conn-item-name { font-size: 12px; color: #b0a898; cursor: pointer; }
+  .conn-item-name:hover { color: var(--gold); }
+  .conn-item-rel { font-size: 10px; color: var(--text-dim); margin-left: 6px; font-style: italic; }
+  .conn-delete { background: none; border: none; color: #5a3a2a; cursor: pointer; font-size: 12px; padding: 0 4px; }
+  .conn-delete:hover { color: var(--red); }
+  .detail-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* ── Modal ── */
+  #modal-overlay {
+    position: fixed; inset: 0; z-index: 50; background: rgba(5,4,3,0.8);
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  #modal-overlay.active { display: flex; }
+  #modal-box {
+    background: var(--bg-alt); border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px; width: 370px; max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  #modal-box h3 {
+    font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600;
+    color: var(--gold); margin: 0 0 16px;
+  }
+  #modal-box .modal-subtitle {
+    font-size: 12px; color: var(--text-muted); font-style: italic; margin: -12px 0 16px;
+  }
+  .form-label {
+    display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-dim); margin: 0 0 4px;
+  }
+  .form-input, .form-textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); padding: 8px 10px; font-size: 14px; font-family: 'Crimson Text', serif;
+    outline: none; margin-bottom: 12px;
+  }
+  .form-input:focus, .form-textarea:focus { border-color: var(--gold); }
+  .form-textarea { resize: vertical; min-height: 60px; }
+  .cat-select { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+  .cat-select-btn {
+    background: transparent; border: 1px solid var(--border); border-radius: 4px;
+    padding: 4px 10px; font-size: 11px; cursor: pointer;
+    font-family: 'Crimson Text', serif; text-transform: capitalize; transition: all 0.15s;
+  }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .modal-actions .btn { flex: 1; padding: 10px; text-align: center; }
+
+  /* ── Export/Import buttons ── */
+  .file-input-hidden { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div id="topbar">
+  <div>
+    <h1>✦ Mappae Mentis</h1>
+    <div class="subtitle">A Concept Map for Medieval Philosophy of Mind</div>
+  </div>
+  <div class="topbar-right">
+    <div style="position:relative">
+      <input type="text" id="search-input" placeholder="Search nodes...">
+      <div id="search-results"></div>
+    </div>
+    <button class="btn" onclick="showHelp()">?</button>
+    <button class="btn" onclick="exportData()" title="Export map as JSON">Export</button>
+    <button class="btn" onclick="document.getElementById('import-file').click()" title="Import map from JSON">Import</button>
+    <input type="file" id="import-file" class="file-input-hidden" accept=".json" onchange="importData(event)">
+    <button class="btn btn-red" onclick="resetMap()">Reset</button>
+  </div>
+</div>
+
+<!-- Left Toolbar -->
+<div id="toolbar">
+  <div class="toolbar-label">Add</div>
+  <div id="toolbar-buttons"></div>
+  <div class="toolbar-divider" id="connect-divider" style="display:none"></div>
+  <button class="btn btn-blue" id="connect-btn" style="display:none" onclick="startConnecting()">⤳ Connect</button>
+</div>
+
+<!-- Zoom Controls -->
+<div id="zoom-controls">
+  <button class="btn" onclick="changeZoom(0.8)">−</button>
+  <span id="zoom-label">100%</span>
+  <button class="btn" onclick="changeZoom(1.25)">+</button>
+  <button class="btn" onclick="resetView()" style="margin-left:4px">⌂</button>
+</div>
+
+<!-- Node Count -->
+<div id="node-count"></div>
+
+<!-- Canvas -->
+<div id="canvas">
+  <svg id="grid-svg"><defs><pattern id="grid-pattern" patternUnits="userSpaceOnUse"><circle r="0.6" fill="#5a5548"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid-pattern)"/></svg>
+  <div id="canvas-inner">
+    <svg id="connections-svg"></svg>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div id="detail-panel"></div>
+
+<!-- Modal -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modal-box"></div>
+</div>
+
+<script>
+// ── Category definitions ──
+const CATEGORIES = {
+  thinker:  { bg: '#c9a84c', text: '#1a1408', border: '#e0c872' },
+  concept:  { bg: '#4a6a8a', text: '#e8f0f8', border: '#6a8aaa' },
+  work:     { bg: '#7b4a2a', text: '#f0e0d0', border: '#a0623a' },
+  movement: { bg: '#4a7a4a', text: '#e0f0e0', border: '#6a9a6a' },
+  question: { bg: '#8a3a6a', text: '#f0e0f0', border: '#aa5a8a' },
+};
+
+const PLACEHOLDERS = {
+  thinker: 'e.g. Plotinus', concept: 'e.g. Divine Illumination',
+  work: 'e.g. De Trinitate', movement: 'e.g. Neoplatonism',
+  question: 'e.g. Can the will choose the good alone?',
+};
+
+// ── State ──
+let data = { nodes: [], connections: [] };
+let selected = null;
+let connectingFrom = null;
+let pan = { x: 0, y: 0 };
+let zoom = 1;
+let dragging = null;
+let dragOffset = { x: 0, y: 0 };
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+
+const STORAGE_KEY = 'mappae-mentis-data';
+const DEFAULT_DATA = {
+  nodes: [{ id: 'n1', label: 'Augustine', category: 'thinker', x: 400, y: 300, notes: '354–430 AD. Bishop of Hippo. Start here.', sources: '' }],
+  connections: []
+};
+
+// ── Init ──
+function init() {
+  loadData();
+  buildToolbar();
+  bindEvents();
+  render();
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.nodes && parsed.nodes.length > 0) { data = parsed; return; }
+    }
+  } catch(e) {}
+  data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+
+function saveData() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function genId() { return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function genConnId() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ── Toolbar ──
+function buildToolbar() {
+  const cont = document.getElementById('toolbar-buttons');
+  cont.innerHTML = '';
+  for (const [cat, colors] of Object.entries(CATEGORIES)) {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn';
+    btn.textContent = '+ ' + cat;
+    btn.style.color = colors.border;
+    btn.style.background = colors.bg + '22';
+    btn.style.borderColor = colors.bg + '55';
+    btn.onmouseenter = () => { btn.style.background = colors.bg + '44'; btn.style.borderColor = colors.border; };
+    btn.onmouseleave = () => { btn.style.background = colors.bg + '22'; btn.style.borderColor = colors.bg + '55'; };
+    btn.onclick = () => addNode(cat);
+    cont.appendChild(btn);
+  }
+}
+
+// ── Coordinate conversion ──
+function screenToCanvas(sx, sy) {
+  const rect = document.getElementById('canvas').getBoundingClientRect();
+  return { x: (sx - rect.left - pan.x) / zoom, y: (sy - rect.top - pan.y) / zoom };
+}
+
+// ── Events ──
+function bindEvents() {
+  const canvas = document.getElementById('canvas');
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.node') || e.target.closest('.conn-label-group')) return;
+    if (connectingFrom) { connectingFrom = null; updateCanvasCursor(); render(); return; }
+    isPanning = true;
+    panStart = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+    selected = null;
+    updateCanvasCursor();
+    renderDetail();
+    updateToolbarConnect();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+      pan.x = e.clientX - panStart.x;
+      pan.y = e.clientY - panStart.y;
+      applyTransform();
+      updateGrid();
+    }
+    if (dragging) {
+      const pos = screenToCanvas(e.clientX, e.clientY);
+      const node = data.nodes.find(n => n.id === dragging);
+      if (node) {
+        node.x = pos.x - dragOffset.x;
+        node.y = pos.y - dragOffset.y;
+        renderNodePosition(node);
+        renderConnections();
+      }
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (dragging) { saveData(); }
+    isPanning = false; dragging = null;
+    updateCanvasCursor();
+  });
+
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    zoom = Math.min(3, Math.max(0.2, zoom * factor));
+    applyTransform();
+    updateGrid();
+    document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+  }, { passive: false });
+
+  // Search
+  const searchInput = document.getElementById('search-input');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase().trim();
+    const results = document.getElementById('search-results');
+    if (!q) { results.classList.remove('active'); return; }
+    const matches = data.nodes.filter(n =>
+      n.label.toLowerCase().includes(q) || (n.notes && n.notes.toLowerCase().includes(q))
+    );
+    if (matches.length === 0) { results.classList.remove('active'); return; }
+    results.innerHTML = matches.map(n => {
+      const col = CATEGORIES[n.category]?.bg || '#888';
+      return `<div class="search-item" onclick="focusNode('${n.id}')"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin-right:6px"></span>${esc(n.label)}</div>`;
+    }).join('');
+    results.classList.add('active');
+  });
+  searchInput.addEventListener('focus', () => { searchInput.style.borderColor = 'var(--gold)'; });
+  searchInput.addEventListener('blur', () => {
+    searchInput.style.borderColor = '';
+    setTimeout(() => document.getElementById('search-results').classList.remove('active'), 200);
+  });
+}
+
+function focusNode(id) {
+  selected = id;
+  const node = data.nodes.find(n => n.id === id);
+  if (node) {
+    pan.x = window.innerWidth / 2 - node.x * zoom;
+    pan.y = window.innerHeight / 2 - node.y * zoom;
+    applyTransform();
+    updateGrid();
+  }
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-results').classList.remove('active');
+  render();
+}
+
+// ── Canvas transforms ──
+function applyTransform() {
+  document.getElementById('canvas-inner').style.transform =
+    `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
+}
+
+function updateGrid() {
+  const size = 50 * zoom;
+  const pattern = document.getElementById('grid-pattern');
+  pattern.setAttribute('width', size);
+  pattern.setAttribute('height', size);
+  pattern.setAttribute('x', pan.x % size);
+  pattern.setAttribute('y', pan.y % size);
+  const circle = pattern.querySelector('circle');
+  circle.setAttribute('cx', 1);
+  circle.setAttribute('cy', 1);
+}
+
+function updateCanvasCursor() {
+  const c = document.getElementById('canvas');
+  c.classList.toggle('panning', isPanning);
+  c.classList.toggle('connecting', !!connectingFrom);
+}
+
+function changeZoom(factor) {
+  zoom = Math.min(3, Math.max(0.2, zoom * factor));
+  applyTransform();
+  updateGrid();
+  document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+}
+
+function resetView() { pan = { x: 0, y: 0 }; zoom = 1; applyTransform(); updateGrid(); document.getElementById('zoom-label').textContent = '100%'; }
+
+// ── Rendering ──
+function render() {
+  renderNodes();
+  renderConnections();
+  renderDetail();
+  updateToolbarConnect();
+  document.getElementById('node-count').textContent =
+    `${data.nodes.length} nodes · ${data.connections.length} connections`;
+}
+
+function renderNodes() {
+  const inner = document.getElementById('canvas-inner');
+  // Remove old nodes
+  inner.querySelectorAll('.node').forEach(el => el.remove());
+  data.nodes.forEach(node => {
+    const colors = CATEGORIES[node.category] || CATEGORIES.concept;
+    const el = document.createElement('div');
+    el.className = 'node' + (selected === node.id ? ' selected' : '');
+    el.dataset.id = node.id;
+    el.style.left = (node.x - 55) + 'px';
+    el.style.top = (node.y - 24) + 'px';
+    el.style.borderColor = (selected === node.id) ? colors.border : (colors.bg + '55');
+    el.style.background = (selected === node.id) ? (colors.bg + '33') : 'var(--bg-alt)';
+    if (selected === node.id) el.style.boxShadow = `0 0 20px ${colors.bg}22`;
+
+    let html = `<div class="node-cat" style="color:${colors.border}">${node.category}</div>`;
+    html += `<div class="node-label" style="color:${colors.border}">${esc(node.label)}</div>`;
+    if (node.notes) {
+      const preview = node.notes.length > 60 ? node.notes.slice(0, 60) + '…' : node.notes;
+      html += `<div class="node-notes">${esc(preview)}</div>`;
+    }
+    el.innerHTML = html;
+
+    el.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      if (connectingFrom) {
+        if (connectingFrom !== node.id) {
+          const exists = data.connections.find(c =>
+            (c.from === connectingFrom && c.to === node.id) || (c.from === node.id && c.to === connectingFrom)
+          );
+          if (!exists) openConnectionModal(connectingFrom, node.id);
+        }
+        connectingFrom = null;
+        updateCanvasCursor();
+        return;
+      }
+      const pos = screenToCanvas(e.clientX, e.clientY);
+      dragOffset = { x: pos.x - node.x, y: pos.y - node.y };
+      dragging = node.id;
+      selected = node.id;
+      // Update visual selection without full re-render (which would destroy drag state)
+      document.querySelectorAll('.node').forEach(n => {
+        const nid = n.dataset.id;
+        const nd = data.nodes.find(x => x.id === nid);
+        const col = CATEGORIES[nd?.category] || CATEGORIES.concept;
+        if (nid === node.id) {
+          n.classList.add('selected');
+          n.style.borderColor = col.border;
+          n.style.background = col.bg + '33';
+          n.style.boxShadow = `0 0 20px ${col.bg}22`;
+          n.style.zIndex = 10;
+        } else {
+          n.classList.remove('selected');
+          n.style.borderColor = col.bg + '55';
+          n.style.background = 'var(--bg-alt)';
+          n.style.boxShadow = 'none';
+          n.style.zIndex = 1;
+        }
+      });
+      renderDetail();
+      updateToolbarConnect();
+    });
+
+    el.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      openEditNodeModal(node.id);
+    });
+
+    inner.appendChild(el);
+  });
+}
+
+function renderNodePosition(node) {
+  const el = document.querySelector(`.node[data-id="${node.id}"]`);
+  if (el) { el.style.left = (node.x - 55) + 'px'; el.style.top = (node.y - 24) + 'px'; }
+}
+
+function renderConnections() {
+  const svg = document.getElementById('connections-svg');
+  svg.innerHTML = '';
+  data.connections.forEach(conn => {
+    const fromNode = data.nodes.find(n => n.id === conn.from);
+    const toNode = data.nodes.find(n => n.id === conn.to);
+    if (!fromNode || !toNode) return;
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', fromNode.x); line.setAttribute('y1', fromNode.y);
+    line.setAttribute('x2', toNode.x); line.setAttribute('y2', toNode.y);
+    line.setAttribute('stroke', '#3d3830'); line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-dasharray', '6,4'); line.setAttribute('opacity', '0.7');
+    svg.appendChild(line);
+
+    if (conn.label) {
+      const mx = (fromNode.x + toNode.x) / 2;
+      const my = (fromNode.y + toNode.y) / 2;
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.classList.add('conn-label-group');
+      g.onclick = (e) => { e.stopPropagation(); openEditConnectionModal(conn.id); };
+
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', mx - 65); rect.setAttribute('y', my - 10);
+      rect.setAttribute('width', 130); rect.setAttribute('height', 20);
+      rect.setAttribute('rx', 3); rect.setAttribute('fill', '#0a0908');
+      rect.setAttribute('fill-opacity', '0.85');
+      g.appendChild(rect);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', mx); text.setAttribute('y', my + 4);
+      text.setAttribute('text-anchor', 'middle'); text.setAttribute('fill', '#8a8478');
+      text.setAttribute('font-size', '10'); text.setAttribute('font-family', "'Crimson Text', serif");
+      text.setAttribute('font-style', 'italic');
+      const label = conn.label.length > 24 ? conn.label.slice(0, 24) + '…' : conn.label;
+      text.textContent = label;
+      g.appendChild(text);
+      svg.appendChild(g);
+    }
+  });
+}
+
+function renderDetail() {
+  const panel = document.getElementById('detail-panel');
+  const node = data.nodes.find(n => n.id === selected);
+  if (!node) { panel.classList.remove('active'); return; }
+  panel.classList.add('active');
+
+  const colors = CATEGORIES[node.category] || CATEGORIES.concept;
+  const conns = data.connections.filter(c => c.from === selected || c.to === selected);
+
+  let html = '';
+  html += `<div class="detail-cat" style="color:${colors.border};background:${colors.bg}22">${node.category}</div>`;
+  html += `<div class="detail-title">${esc(node.label)}</div>`;
+
+  if (node.notes) {
+    html += `<p class="detail-section-label">Notes</p>`;
+    html += `<div class="detail-notes">${esc(node.notes)}</div>`;
+  }
+  if (node.sources) {
+    html += `<p class="detail-section-label">Sources</p>`;
+    html += `<div class="detail-sources">${esc(node.sources)}</div>`;
+  }
+
+  if (conns.length > 0) {
+    html += `<p class="detail-section-label">Connections</p>`;
+    conns.forEach(c => {
+      const other = data.nodes.find(n => n.id === (c.from === selected ? c.to : c.from));
+      html += `<div class="conn-item">
+        <div style="flex:1">
+          <span class="conn-item-name" onclick="focusNode('${other?.id}')">${esc(other?.label || '?')}</span>
+          ${c.label ? `<span class="conn-item-rel">(${esc(c.label)})</span>` : ''}
+        </div>
+        <button class="conn-delete" onclick="deleteConnection('${c.id}')" title="Remove connection">✕</button>
+      </div>`;
+    });
+  }
+
+  html += `<div class="detail-actions">
+    <button class="btn btn-gold" onclick="openEditNodeModal('${node.id}')">Edit</button>
+    <button class="btn btn-blue" onclick="startConnecting()">Connect</button>
+    <button class="btn btn-red" onclick="deleteNode('${node.id}')">Delete</button>
+  </div>`;
+
+  panel.innerHTML = html;
+}
+
+function updateToolbarConnect() {
+  const btn = document.getElementById('connect-btn');
+  const div = document.getElementById('connect-divider');
+  if (selected) {
+    btn.style.display = 'block'; div.style.display = 'block';
+    btn.textContent = connectingFrom ? 'Click target…' : '⤳ Connect';
+    btn.style.background = connectingFrom ? '#c9a84c33' : '';
+    btn.style.borderColor = connectingFrom ? 'var(--gold)' : '';
+    btn.style.color = connectingFrom ? 'var(--gold)' : '';
+  } else {
+    btn.style.display = 'none'; div.style.display = 'none';
+  }
+}
+
+// ── Actions ──
+function addNode(category) {
+  const center = screenToCanvas(window.innerWidth / 2, window.innerHeight / 2);
+  openAddNodeModal(category, center.x + (Math.random() - 0.5) * 80, center.y + (Math.random() - 0.5) * 80);
+}
+
+function deleteNode(id) {
+  openModal(`
+    <h3>Delete Node?</h3>
+    <p style="font-size:13px;color:#b0a898;margin:0 0 16px;line-height:1.6">This will remove the node and all its connections. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-red" onclick="confirmDeleteNode('${id}')">Delete</button>
+      <button class="btn" onclick="closeModal()" style="flex:0 0 auto;padding:10px 16px">Cancel</button>
+    </div>
+  `);
+}
+
+function confirmDeleteNode(id) {
+  data.nodes = data.nodes.filter(n => n.id !== id);
+  data.connections = data.connections.filter(c => c.from !== id && c.to !== id);
+  selected = null; saveData(); closeModal(); render();
+}
+
+function deleteConnection(id) {
+  data.connections = data.connections.filter(c => c.id !== id);
+  saveData(); render();
+}
+
+function startConnecting() {
+  connectingFrom = selected;
+  updateCanvasCursor();
+  updateToolbarConnect();
+}
+
+// ── Modals ──
+function openModal(html) {
+  document.getElementById('modal-box').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('active');
+  setTimeout(() => {
+    const first = document.querySelector('#modal-box .form-input, #modal-box .form-textarea');
+    if (first) first.focus();
+  }, 50);
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('active'); }
+
+function openAddNodeModal(category, x, y) {
+  const colors = CATEGORIES[category];
+  openModal(`
+    <h3>New ${category}</h3>
+    <label class="form-label">Label</label>
+    <input class="form-input" id="m-label" placeholder="${PLACEHOLDERS[category] || ''}"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();confirmAddNode('${category}',${x},${y})}">
+    <label class="form-label">Notes</label>
+    <textarea class="form-textarea" id="m-notes" rows="4" placeholder="Your notes, observations, arguments..."></textarea>
+    <label class="form-label">Sources</label>
+    <textarea class="form-textarea" id="m-sources" rows="2" placeholder="Primary texts, secondary literature..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="confirmAddNode('${category}',${x},${y})">Add to Map</button>
+      <button class="btn" onclick="closeModal()" style="flex:0 0 auto;padding:10px 16px">Cancel</button>
+    </div>
+  `);
+}
+
+function confirmAddNode(category, x, y) {
+  const label = document.getElementById('m-label').value.trim();
+  if (!label) return;
+  const node = {
+    id: genId(), label, category, x, y,
+    notes: document.getElementById('m-notes').value,
+    sources: document.getElementById('m-sources').value,
+  };
+  data.nodes.push(node);
+  selected = node.id;
+  saveData(); closeModal(); render();
+}
+
+function openEditNodeModal(id) {
+  const node = data.nodes.find(n => n.id === id);
+  if (!node) return;
+  let catHtml = '';
+  for (const [cat, colors] of Object.entries(CATEGORIES)) {
+    const isSel = cat === node.category;
+    catHtml += `<button class="cat-select-btn" data-cat="${cat}" style="color:${colors.border};${isSel ? `background:${colors.bg}44;border-color:${colors.border}` : ''}"
+      onclick="selectEditCat(this,'${cat}')">${cat}</button>`;
+  }
+  openModal(`
+    <h3>Edit: ${esc(node.label)}</h3>
+    <label class="form-label">Category</label>
+    <div class="cat-select" id="m-cat-select">${catHtml}</div>
+    <input type="hidden" id="m-category" value="${node.category}">
+    <label class="form-label">Label</label>
+    <input class="form-input" id="m-label" value="${esc(node.label)}"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();confirmEditNode('${id}')}">
+    <label class="form-label">Notes</label>
+    <textarea class="form-textarea" id="m-notes" rows="4">${esc(node.notes || '')}</textarea>
+    <label class="form-label">Sources</label>
+    <textarea class="form-textarea" id="m-sources" rows="2">${esc(node.sources || '')}</textarea>
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="confirmEditNode('${id}')">Save Changes</button>
+      <button class="btn" onclick="closeModal()" style="flex:0 0 auto;padding:10px 16px">Cancel</button>
+    </div>
+  `);
+}
+
+function selectEditCat(btn, cat) {
+  document.getElementById('m-category').value = cat;
+  document.querySelectorAll('#m-cat-select .cat-select-btn').forEach(b => {
+    const c = b.dataset.cat;
+    const colors = CATEGORIES[c];
+    if (c === cat) {
+      b.style.background = colors.bg + '44'; b.style.borderColor = colors.border;
+    } else {
+      b.style.background = 'transparent'; b.style.borderColor = 'var(--border)';
+    }
+  });
+}
+
+function confirmEditNode(id) {
+  const label = document.getElementById('m-label').value.trim();
+  if (!label) return;
+  const node = data.nodes.find(n => n.id === id);
+  if (node) {
+    node.label = label;
+    node.notes = document.getElementById('m-notes').value;
+    node.sources = document.getElementById('m-sources').value;
+    node.category = document.getElementById('m-category').value;
+  }
+  saveData(); closeModal(); render();
+}
+
+function openConnectionModal(fromId, toId) {
+  const fromNode = data.nodes.find(n => n.id === fromId);
+  const toNode = data.nodes.find(n => n.id === toId);
+  openModal(`
+    <h3>New Connection</h3>
+    <div class="modal-subtitle">${esc(fromNode?.label || '?')} → ${esc(toNode?.label || '?')}</div>
+    <label class="form-label">Relationship</label>
+    <input class="form-input" id="m-label" placeholder="e.g. 'influenced', 'critiqued', 'developed from'"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddConnection('${fromId}','${toId}')}">
+    <label class="form-label">Notes</label>
+    <textarea class="form-textarea" id="m-notes" rows="3" placeholder="Details about this relationship..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="confirmAddConnection('${fromId}','${toId}')">Create Connection</button>
+      <button class="btn" onclick="closeModal()" style="flex:0 0 auto;padding:10px 16px">Cancel</button>
+    </div>
+  `);
+}
+
+function confirmAddConnection(fromId, toId) {
+  const conn = {
+    id: genConnId(), from: fromId, to: toId,
+    label: document.getElementById('m-label').value.trim(),
+    notes: document.getElementById('m-notes').value,
+  };
+  data.connections.push(conn);
+  saveData(); closeModal(); render();
+}
+
+function openEditConnectionModal(connId) {
+  const conn = data.connections.find(c => c.id === connId);
+  if (!conn) return;
+  const fromNode = data.nodes.find(n => n.id === conn.from);
+  const toNode = data.nodes.find(n => n.id === conn.to);
+  openModal(`
+    <h3>Edit Connection</h3>
+    <div class="modal-subtitle">${esc(fromNode?.label || '?')} → ${esc(toNode?.label || '?')}</div>
+    <label class="form-label">Relationship</label>
+    <input class="form-input" id="m-label" value="${esc(conn.label || '')}"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();confirmEditConnection('${connId}')}">
+    <label class="form-label">Notes</label>
+    <textarea class="form-textarea" id="m-notes" rows="3">${esc(conn.notes || '')}</textarea>
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="confirmEditConnection('${connId}')">Save</button>
+      <button class="btn btn-red" onclick="deleteConnection('${connId}');closeModal()" style="flex:0 0 auto;padding:10px 16px">Delete</button>
+      <button class="btn" onclick="closeModal()" style="flex:0 0 auto;padding:10px 16px">Cancel</button>
+    </div>
+  `);
+}
+
+function confirmEditConnection(connId) {
+  const conn = data.connections.find(c => c.id === connId);
+  if (conn) {
+    conn.label = document.getElementById('m-label').value.trim();
+    conn.notes = document.getElementById('m-notes').value;
+  }
+  saveData(); closeModal(); render();
+}
+
+// ── Export / Import ──
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mappae-mentis-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (imported.nodes && Array.isArray(imported.nodes)) {
+        window._pendingImport = imported;
+        openModal(`
+          <h3>Import Map?</h3>
+          <p style="font-size:13px;color:#b0a898;margin:0 0 16px;line-height:1.6">Import ${imported.nodes.length} nodes and ${imported.connections?.length || 0} connections? This will replace your current map.</p>
+          <div class="modal-actions">
+            <button class="btn btn-gold" onclick="confirmImport()">Import</button>
+            <button class="btn" onclick="window._pendingImport=null;closeModal()" style="flex:0 0 auto;padding:10px 16px">Cancel</button>
+          </div>
+        `);
+      } else {
+        openModal(`<h3>Error</h3><p style="font-size:13px;color:#b0a898;margin:0 0 16px">Invalid file format.</p>
+          <button class="btn" onclick="closeModal()" style="padding:10px 16px">OK</button>`);
+      }
+    } catch(err) {
+      openModal(`<h3>Error</h3><p style="font-size:13px;color:#b0a898;margin:0 0 16px">Failed to parse file: ${esc(err.message)}</p>
+        <button class="btn" onclick="closeModal()" style="padding:10px 16px">OK</button>`);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function confirmImport() {
+  if (window._pendingImport) {
+    data = window._pendingImport;
+    window._pendingImport = null;
+    saveData(); closeModal(); render();
+  }
+}
+
+function resetMap() {
+  openModal(`
+    <h3>Reset Entire Map?</h3>
+    <p style="font-size:13px;color:#b0a898;margin:0 0 16px;line-height:1.6">This will erase all nodes and connections and start fresh. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-red" onclick="confirmReset()">Reset Everything</button>
+      <button class="btn" onclick="closeModal()" style="flex:0 0 auto;padding:10px 16px">Cancel</button>
+    </div>
+  `);
+}
+
+function confirmReset() {
+  data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  pan = { x: 0, y: 0 }; zoom = 1; selected = null;
+  saveData(); closeModal(); applyTransform(); updateGrid(); render();
+  document.getElementById('zoom-label').textContent = '100%';
+}
+
+// ── Help ──
+function showHelp() {
+  openModal(`
+    <h3>How to Use Mappae Mentis</h3>
+    <div style="font-size:13px;line-height:1.7;color:#b0a898">
+      <p style="margin:0 0 12px"><strong style="color:var(--gold)">Add nodes</strong> using the buttons on the left. Choose from five types: Thinker, Concept, Work, Movement, or Question.</p>
+      <p style="margin:0 0 12px"><strong style="color:var(--gold)">Drag nodes</strong> to arrange them spatially. Pan the canvas by dragging empty space. Scroll to zoom.</p>
+      <p style="margin:0 0 12px"><strong style="color:var(--gold)">Connect nodes</strong> by selecting one, clicking "Connect," then clicking the target. Label the relationship.</p>
+      <p style="margin:0 0 12px"><strong style="color:var(--gold)">Double-click</strong> any node to edit its details, notes, sources, and category.</p>
+      <p style="margin:0 0 12px"><strong style="color:var(--gold)">Export/Import</strong> your map as a JSON file for backup or sharing.</p>
+      <p style="margin:0"><strong style="color:var(--gold)">Everything saves automatically</strong> in your browser's local storage.</p>
+    </div>
+    <button class="btn btn-gold" onclick="closeModal()" style="margin-top:16px;width:100%;padding:10px">Got it</button>
+  `);
+}
+
+// ── Utility ──
+function esc(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ── Start ──
+init();
+</script>
+</body>
+</html>
